@@ -1,0 +1,51 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Tooling / caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Data dumps under data/ (keep READMEs and .gitkeep)
+data/**/*.csv
+data/**/*.tsv
+data/**/*.json
+data/**/*.jsonl
+data/**/*.parquet
+data/**/*.arrow
+data/**/*.feather
+data/**/*.pkl
+data/**/*.pickle
+data/**/*.npy
+data/**/*.npz
+data/**/*.h5
+data/**/*.hdf5
+data/**/*.pt
+data/**/*.pth
+data/**/*.safetensors
+data/**/*.bin
+data/**/*.gz
+data/**/*.zip
+data/**/*.tar
+data/**/*.tgz
+data/**/*.7z
