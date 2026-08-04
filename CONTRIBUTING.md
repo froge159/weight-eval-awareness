@@ -4,19 +4,20 @@
 
 - Branch from `main` with a short descriptive name (`feat/...`, `fix/...`, `exp/...`).
 - Prefer small PRs with a clear research or engineering goal.
-- Run `uv run pytest` and `uv run ruff check .` before opening a PR.
 
 ## Where code goes
 
 | Kind of work | Put it in |
 |--------------|-----------|
+| Feature / direction extraction | `src/extraction/` |
+| Steering / intervention logic | `src/steering/` |
+| Validation / evaluation checks | `src/validation/` |
 | One-off exploration | `notebooks/` |
-| Runnable protocol others can reproduce | `experiments/` (e.g. `001_short_slug.py`) |
-| Stable, reusable logic | `src/weight_eval_awareness/` |
-| Lit notes and drafts | `papers/` |
-| Datasets / outputs | `data/raw/` or `data/processed/` |
+| Datasets | `data/raw/` or `data/processed/` |
+| Model checkpoints | `checkpoints/` |
+| Run artifacts and results | `outputs/` |
 
-Promote notebook logic into `src/` once it is shared across experiments. Prefer `uv run` so everyone uses the same environment from `uv.lock`.
+Promote notebook logic into the matching `src/` module once it is shared. Prefer `uv run` so everyone uses the same environment from `uv.lock`.
 
 ## Dependencies
 
