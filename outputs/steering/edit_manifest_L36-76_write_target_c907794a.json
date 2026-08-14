@@ -1,0 +1,1861 @@
+{
+  "census": {
+    "checkpoint_down_proj": 80,
+    "checkpoint_o_proj": 49,
+    "hidden_size": 8192,
+    "in_band_down_proj": 41,
+    "in_band_o_proj": 13,
+    "in_band_total": 54,
+    "n_attention_no_op": 31,
+    "n_down_proj": 80,
+    "n_layers": 80,
+    "n_o_proj": 49,
+    "n_total": 129,
+    "tie_word_embeddings": false
+  },
+  "edit": {
+    "band": [
+      36,
+      76
+    ],
+    "hidden_size": 8192,
+    "modules": [
+      {
+        "block": 35,
+        "kind": "down_proj",
+        "name": "model.layers.35.mlp.down_proj",
+        "proj_norm_after": 0.0336743,
+        "proj_norm_before": 2.19835,
+        "rel_frobenius_change": 0.0122686,
+        "removal_ratio": 0.015318,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 36
+      },
+      {
+        "block": 35,
+        "kind": "o_proj",
+        "name": "model.layers.35.self_attn.o_proj",
+        "proj_norm_after": 0.0133654,
+        "proj_norm_before": 1.53072,
+        "rel_frobenius_change": 0.0174122,
+        "removal_ratio": 0.00873141,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 36
+      },
+      {
+        "block": 36,
+        "kind": "down_proj",
+        "name": "model.layers.36.mlp.down_proj",
+        "proj_norm_after": 0.0331593,
+        "proj_norm_before": 2.19554,
+        "rel_frobenius_change": 0.0122729,
+        "removal_ratio": 0.015103,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 36
+      },
+      {
+        "block": 36,
+        "kind": "o_proj",
+        "name": "model.layers.36.self_attn.o_proj",
+        "proj_norm_after": 0.015505,
+        "proj_norm_before": 1.15611,
+        "rel_frobenius_change": 0.0130413,
+        "removal_ratio": 0.0134114,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 36
+      },
+      {
+        "block": 37,
+        "kind": "down_proj",
+        "name": "model.layers.37.mlp.down_proj",
+        "proj_norm_after": 0.0333297,
+        "proj_norm_before": 2.17532,
+        "rel_frobenius_change": 0.0121245,
+        "removal_ratio": 0.0153217,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 36
+      },
+      {
+        "block": 37,
+        "kind": "o_proj",
+        "name": "model.layers.37.self_attn.o_proj",
+        "proj_norm_after": 0.0156851,
+        "proj_norm_before": 1.23341,
+        "rel_frobenius_change": 0.0138356,
+        "removal_ratio": 0.0127168,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 36
+      },
+      {
+        "block": 38,
+        "kind": "down_proj",
+        "name": "model.layers.38.mlp.down_proj",
+        "proj_norm_after": 0.0326739,
+        "proj_norm_before": 2.17973,
+        "rel_frobenius_change": 0.0121606,
+        "removal_ratio": 0.0149899,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 38,
+        "kind": "o_proj",
+        "name": "model.layers.38.self_attn.o_proj",
+        "proj_norm_after": 0.0154155,
+        "proj_norm_before": 1.47844,
+        "rel_frobenius_change": 0.0166599,
+        "removal_ratio": 0.0104269,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 39,
+        "kind": "down_proj",
+        "name": "model.layers.39.mlp.down_proj",
+        "proj_norm_after": 0.0332039,
+        "proj_norm_before": 2.14553,
+        "rel_frobenius_change": 0.011957,
+        "removal_ratio": 0.0154758,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 39,
+        "kind": "o_proj",
+        "name": "model.layers.39.self_attn.o_proj",
+        "proj_norm_after": 0.0153785,
+        "proj_norm_before": 1.22041,
+        "rel_frobenius_change": 0.013556,
+        "removal_ratio": 0.0126011,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 40,
+        "kind": "down_proj",
+        "name": "model.layers.40.mlp.down_proj",
+        "proj_norm_after": 0.0334524,
+        "proj_norm_before": 2.13521,
+        "rel_frobenius_change": 0.011889,
+        "removal_ratio": 0.015667,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 40,
+        "kind": "o_proj",
+        "name": "model.layers.40.self_attn.o_proj",
+        "proj_norm_after": 0.016816,
+        "proj_norm_before": 1.02078,
+        "rel_frobenius_change": 0.0111882,
+        "removal_ratio": 0.0164737,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 41,
+        "kind": "down_proj",
+        "name": "model.layers.41.mlp.down_proj",
+        "proj_norm_after": 0.0330993,
+        "proj_norm_before": 2.09674,
+        "rel_frobenius_change": 0.0116641,
+        "removal_ratio": 0.0157861,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 41,
+        "kind": "o_proj",
+        "name": "model.layers.41.self_attn.o_proj",
+        "proj_norm_after": 0.0158513,
+        "proj_norm_before": 1.29976,
+        "rel_frobenius_change": 0.0144313,
+        "removal_ratio": 0.0121956,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 40
+      },
+      {
+        "block": 42,
+        "kind": "down_proj",
+        "name": "model.layers.42.mlp.down_proj",
+        "proj_norm_after": 0.016665,
+        "proj_norm_before": 1.10305,
+        "rel_frobenius_change": 0.0118604,
+        "removal_ratio": 0.0151081,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 44
+      },
+      {
+        "block": 43,
+        "kind": "down_proj",
+        "name": "model.layers.43.mlp.down_proj",
+        "proj_norm_after": 0.0233242,
+        "proj_norm_before": 1.5383,
+        "rel_frobenius_change": 0.0118638,
+        "removal_ratio": 0.0151623,
+        "shape": [
+          8192,
+          14336
+        ],
+        "source_layer": 44
+      },
+      {
+        "block": 44,
+        "kind": "down_proj",
+        "name": "model.layers.44.mlp.down_proj",
+        "proj_norm_after": 0.0234861,
+        "proj_norm_before": 1.47933,
+        "rel_frobenius_change": 0.0114338,
+        "removal_ratio": 0.0158761,
+        "shape": [
+          8192,
+          14336
+        ],
+        "source_layer": 44
+      },
+      {
+        "block": 45,
+        "kind": "down_proj",
+        "name": "model.layers.45.mlp.down_proj",
+        "proj_norm_after": 0.0167549,
+        "proj_norm_before": 1.07433,
+        "rel_frobenius_change": 0.0116432,
+        "removal_ratio": 0.0155957,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 44
+      },
+      {
+        "block": 46,
+        "kind": "down_proj",
+        "name": "model.layers.46.mlp.down_proj",
+        "proj_norm_after": 0.0327243,
+        "proj_norm_before": 2.12944,
+        "rel_frobenius_change": 0.0118579,
+        "removal_ratio": 0.0153676,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 48
+      },
+      {
+        "block": 47,
+        "kind": "down_proj",
+        "name": "model.layers.47.mlp.down_proj",
+        "proj_norm_after": 0.0168981,
+        "proj_norm_before": 1.09441,
+        "rel_frobenius_change": 0.0118511,
+        "removal_ratio": 0.0154404,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 48
+      },
+      {
+        "block": 48,
+        "kind": "down_proj",
+        "name": "model.layers.48.mlp.down_proj",
+        "proj_norm_after": 0.0234971,
+        "proj_norm_before": 1.48454,
+        "rel_frobenius_change": 0.0114705,
+        "removal_ratio": 0.0158279,
+        "shape": [
+          8192,
+          14336
+        ],
+        "source_layer": 48
+      },
+      {
+        "block": 49,
+        "kind": "down_proj",
+        "name": "model.layers.49.mlp.down_proj",
+        "proj_norm_after": 0.0168864,
+        "proj_norm_before": 1.07274,
+        "rel_frobenius_change": 0.0116409,
+        "removal_ratio": 0.0157414,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 48
+      },
+      {
+        "block": 50,
+        "kind": "down_proj",
+        "name": "model.layers.50.mlp.down_proj",
+        "proj_norm_after": 0.016344,
+        "proj_norm_before": 1.08773,
+        "rel_frobenius_change": 0.0117871,
+        "removal_ratio": 0.0150259,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 52
+      },
+      {
+        "block": 51,
+        "kind": "down_proj",
+        "name": "model.layers.51.mlp.down_proj",
+        "proj_norm_after": 0.0166756,
+        "proj_norm_before": 1.09614,
+        "rel_frobenius_change": 0.011887,
+        "removal_ratio": 0.0152131,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 52
+      },
+      {
+        "block": 52,
+        "kind": "down_proj",
+        "name": "model.layers.52.mlp.down_proj",
+        "proj_norm_after": 0.0333332,
+        "proj_norm_before": 2.08313,
+        "rel_frobenius_change": 0.0115697,
+        "removal_ratio": 0.0160015,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 52
+      },
+      {
+        "block": 52,
+        "kind": "o_proj",
+        "name": "model.layers.52.self_attn.o_proj",
+        "proj_norm_after": 0.0153132,
+        "proj_norm_before": 1.03802,
+        "rel_frobenius_change": 0.0119449,
+        "removal_ratio": 0.0147524,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 52
+      },
+      {
+        "block": 53,
+        "kind": "down_proj",
+        "name": "model.layers.53.mlp.down_proj",
+        "proj_norm_after": 0.0164467,
+        "proj_norm_before": 1.06717,
+        "rel_frobenius_change": 0.0115772,
+        "removal_ratio": 0.0154115,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 52
+      },
+      {
+        "block": 54,
+        "kind": "down_proj",
+        "name": "model.layers.54.mlp.down_proj",
+        "proj_norm_after": 0.0146858,
+        "proj_norm_before": 1.00281,
+        "rel_frobenius_change": 0.0122145,
+        "removal_ratio": 0.0146447,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 56
+      },
+      {
+        "block": 55,
+        "kind": "down_proj",
+        "name": "model.layers.55.mlp.down_proj",
+        "proj_norm_after": 0.0144241,
+        "proj_norm_before": 1.02592,
+        "rel_frobenius_change": 0.0125383,
+        "removal_ratio": 0.0140596,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 56
+      },
+      {
+        "block": 56,
+        "kind": "down_proj",
+        "name": "model.layers.56.mlp.down_proj",
+        "proj_norm_after": 0.0164226,
+        "proj_norm_before": 1.07585,
+        "rel_frobenius_change": 0.0116992,
+        "removal_ratio": 0.0152649,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 56
+      },
+      {
+        "block": 57,
+        "kind": "down_proj",
+        "name": "model.layers.57.mlp.down_proj",
+        "proj_norm_after": 0.0144901,
+        "proj_norm_before": 0.972424,
+        "rel_frobenius_change": 0.0119354,
+        "removal_ratio": 0.014901,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 56
+      },
+      {
+        "block": 58,
+        "kind": "down_proj",
+        "name": "model.layers.58.mlp.down_proj",
+        "proj_norm_after": 0.0147596,
+        "proj_norm_before": 0.941339,
+        "rel_frobenius_change": 0.0114878,
+        "removal_ratio": 0.0156794,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 60
+      },
+      {
+        "block": 59,
+        "kind": "down_proj",
+        "name": "model.layers.59.mlp.down_proj",
+        "proj_norm_after": 0.0145085,
+        "proj_norm_before": 1.00264,
+        "rel_frobenius_change": 0.0123392,
+        "removal_ratio": 0.0144703,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 60
+      },
+      {
+        "block": 60,
+        "kind": "down_proj",
+        "name": "model.layers.60.mlp.down_proj",
+        "proj_norm_after": 0.0161882,
+        "proj_norm_before": 1.0922,
+        "rel_frobenius_change": 0.0119644,
+        "removal_ratio": 0.0148216,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 60
+      },
+      {
+        "block": 61,
+        "kind": "down_proj",
+        "name": "model.layers.61.mlp.down_proj",
+        "proj_norm_after": 0.0163077,
+        "proj_norm_before": 1.0572,
+        "rel_frobenius_change": 0.0115492,
+        "removal_ratio": 0.0154253,
+        "shape": [
+          8192,
+          7168
+        ],
+        "source_layer": 60
+      },
+      {
+        "block": 62,
+        "kind": "down_proj",
+        "name": "model.layers.62.mlp.down_proj",
+        "proj_norm_after": 0.0100335,
+        "proj_norm_before": 0.709385,
+        "rel_frobenius_change": 0.0123723,
+        "removal_ratio": 0.0141439,
+        "shape": [
+          8192,
+          2816
+        ],
+        "source_layer": 64
+      },
+      {
+        "block": 63,
+        "kind": "down_proj",
+        "name": "model.layers.63.mlp.down_proj",
+        "proj_norm_after": 0.0106975,
+        "proj_norm_before": 0.698156,
+        "rel_frobenius_change": 0.0123054,
+        "removal_ratio": 0.0153225,
+        "shape": [
+          8192,
+          2816
+        ],
+        "source_layer": 64
+      },
+      {
+        "block": 64,
+        "kind": "down_proj",
+        "name": "model.layers.64.mlp.down_proj",
+        "proj_norm_after": 0.0145176,
+        "proj_norm_before": 0.923433,
+        "rel_frobenius_change": 0.0115506,
+        "removal_ratio": 0.0157214,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 64
+      },
+      {
+        "block": 65,
+        "kind": "down_proj",
+        "name": "model.layers.65.mlp.down_proj",
+        "proj_norm_after": 0.0144916,
+        "proj_norm_before": 0.904197,
+        "rel_frobenius_change": 0.0112675,
+        "removal_ratio": 0.016027,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 64
+      },
+      {
+        "block": 66,
+        "kind": "down_proj",
+        "name": "model.layers.66.mlp.down_proj",
+        "proj_norm_after": 0.0104585,
+        "proj_norm_before": 0.740224,
+        "rel_frobenius_change": 0.0129268,
+        "removal_ratio": 0.0141289,
+        "shape": [
+          8192,
+          2816
+        ],
+        "source_layer": 68
+      },
+      {
+        "block": 67,
+        "kind": "down_proj",
+        "name": "model.layers.67.mlp.down_proj",
+        "proj_norm_after": 0.0103767,
+        "proj_norm_before": 0.710802,
+        "rel_frobenius_change": 0.0124358,
+        "removal_ratio": 0.0145986,
+        "shape": [
+          8192,
+          2816
+        ],
+        "source_layer": 68
+      },
+      {
+        "block": 68,
+        "kind": "down_proj",
+        "name": "model.layers.68.mlp.down_proj",
+        "proj_norm_after": 0.0148127,
+        "proj_norm_before": 0.913607,
+        "rel_frobenius_change": 0.0114117,
+        "removal_ratio": 0.0162134,
+        "shape": [
+          8192,
+          5632
+        ],
+        "source_layer": 68
+      },
+      {
+        "block": 69,
+        "kind": "down_proj",
+        "name": "model.layers.69.mlp.down_proj",
+        "proj_norm_after": 0.0104461,
+        "proj_norm_before": 0.691501,
+        "rel_frobenius_change": 0.0121641,
+        "removal_ratio": 0.0151064,
+        "shape": [
+          8192,
+          2816
+        ],
+        "source_layer": 68
+      },
+      {
+        "block": 70,
+        "kind": "down_proj",
+        "name": "model.layers.70.mlp.down_proj",
+        "proj_norm_after": 0.0101363,
+        "proj_norm_before": 0.754387,
+        "rel_frobenius_change": 0.0130451,
+        "removal_ratio": 0.0134365,
+        "shape": [
+          8192,
+          2816
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 71,
+        "kind": "down_proj",
+        "name": "model.layers.71.mlp.down_proj",
+        "proj_norm_after": 0.0333489,
+        "proj_norm_before": 2.15275,
+        "rel_frobenius_change": 0.0119231,
+        "removal_ratio": 0.0154913,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 71,
+        "kind": "o_proj",
+        "name": "model.layers.71.self_attn.o_proj",
+        "proj_norm_after": 0.016942,
+        "proj_norm_before": 1.07762,
+        "rel_frobenius_change": 0.0114749,
+        "removal_ratio": 0.0157217,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 72,
+        "kind": "down_proj",
+        "name": "model.layers.72.mlp.down_proj",
+        "proj_norm_after": 0.0333015,
+        "proj_norm_before": 2.06411,
+        "rel_frobenius_change": 0.0115214,
+        "removal_ratio": 0.0161336,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 72,
+        "kind": "o_proj",
+        "name": "model.layers.72.self_attn.o_proj",
+        "proj_norm_after": 0.0171572,
+        "proj_norm_before": 0.986086,
+        "rel_frobenius_change": 0.0105629,
+        "removal_ratio": 0.0173993,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 73,
+        "kind": "down_proj",
+        "name": "model.layers.73.mlp.down_proj",
+        "proj_norm_after": 0.0330957,
+        "proj_norm_before": 2.06832,
+        "rel_frobenius_change": 0.0115311,
+        "removal_ratio": 0.0160012,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 73,
+        "kind": "o_proj",
+        "name": "model.layers.73.self_attn.o_proj",
+        "proj_norm_after": 0.0167732,
+        "proj_norm_before": 1.15299,
+        "rel_frobenius_change": 0.012146,
+        "removal_ratio": 0.0145475,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 72
+      },
+      {
+        "block": 74,
+        "kind": "down_proj",
+        "name": "model.layers.74.mlp.down_proj",
+        "proj_norm_after": 0.033424,
+        "proj_norm_before": 2.04603,
+        "rel_frobenius_change": 0.0113707,
+        "removal_ratio": 0.016336,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 76
+      },
+      {
+        "block": 74,
+        "kind": "o_proj",
+        "name": "model.layers.74.self_attn.o_proj",
+        "proj_norm_after": 0.0165125,
+        "proj_norm_before": 1.0675,
+        "rel_frobenius_change": 0.0115091,
+        "removal_ratio": 0.0154684,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 76
+      },
+      {
+        "block": 75,
+        "kind": "down_proj",
+        "name": "model.layers.75.mlp.down_proj",
+        "proj_norm_after": 0.0330284,
+        "proj_norm_before": 2.05677,
+        "rel_frobenius_change": 0.0114418,
+        "removal_ratio": 0.0160584,
+        "shape": [
+          8192,
+          28672
+        ],
+        "source_layer": 76
+      },
+      {
+        "block": 75,
+        "kind": "o_proj",
+        "name": "model.layers.75.self_attn.o_proj",
+        "proj_norm_after": 0.0179736,
+        "proj_norm_before": 1.04416,
+        "rel_frobenius_change": 0.010676,
+        "removal_ratio": 0.0172136,
+        "shape": [
+          8192,
+          8192
+        ],
+        "source_layer": 76
+      }
+    ],
+    "n_candidates_in_model": 129,
+    "n_down_proj": 80,
+    "n_edited": 54,
+    "n_o_proj": 49,
+    "notes": [
+      "edited 54 of 129 output projections (13 o_proj, 41 down_proj)",
+      "worst residual projection after the edit: 1.74e-02 of the original (nonzero because the result is stored in bf16, not because the edit failed -- see fidelity for the tolerance this implies)"
+    ],
+    "worst_removal_ratio": 0.0173993
+  },
+  "edit_id": "L36-76_write_target_c907794a",
+  "edit_spec": {
+    "adapter_id": "timhua/wood_v2_sftr4_filt",
+    "band": [
+      36,
+      76
+    ],
+    "base_model_id": "nvidia/Llama-3_3-Nemotron-Super-49B-v1",
+    "device_map": "cpu",
+    "direction_key": "r_hat",
+    "directions_dir": "/home/ubuntu/weight-eval-awareness/outputs/directions",
+    "dtype": "bfloat16",
+    "layer_convention": "write_target",
+    "pooling": "last_prompt_token",
+    "revision": "main"
+  },
+  "fidelity": {
+    "end_to_end": {
+      "argmax_agreement": 1.0,
+      "logit_max_rel_err": 0.0228069,
+      "max_rel_err": 0.0204172,
+      "median_rel_err": 0.00764647,
+      "passed": true,
+      "per_layer_max_rel_err": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.00356404,
+        0.00528608,
+        0.00625974,
+        0.00762079,
+        0.00852335,
+        0.0088197,
+        0.00937268,
+        0.00984509,
+        0.0100988,
+        0.0103152,
+        0.0103563,
+        0.0106044,
+        0.0107618,
+        0.010825,
+        0.0108176,
+        0.0113139,
+        0.0115959,
+        0.0117334,
+        0.0115828,
+        0.0118181,
+        0.0119262,
+        0.0119415,
+        0.0122711,
+        0.0124351,
+        0.0124876,
+        0.0120042,
+        0.0120632,
+        0.0121375,
+        0.0123198,
+        0.0121411,
+        0.0119301,
+        0.0117912,
+        0.0129598,
+        0.0115394,
+        0.0114663,
+        0.0114911,
+        0.0122286,
+        0.012771,
+        0.0141266,
+        0.0129153,
+        0.0144529,
+        0.0164755,
+        0.0180268,
+        0.0181645,
+        0.0204172
+      ],
+      "rel_tol": 0.05
+    },
+    "leakage": {
+      "drift_vs_unedited": {
+        "edited_top1_in_unedited_top5": 1.0,
+        "interpretation": "These compare the edited model against the UNEDITED one, so nonzero is the point. Read them as a health check: a KL of a few tenths of a nat with most top-1 predictions preserved means the model still computes, and the edit changed it rather than broke it. A KL in the tens, or top-1 agreement near chance, would mean the ablation damaged general capability and any Phase 3 gap closure would be confounded by that damage.",
+        "mean_kl_unedited_to_edited_nats": 1.68073e-05,
+        "top1_agreement_with_unedited": 1.0
+      },
+      "interpretation": "Leakage after the edit is nonzero by construction: blocks below the band and embed_tokens still write along r_hat, and ablation changes downstream computation nonlinearly, so edited activations are not the projection of the original ones. Expect a clear drop inside the band and little change outside it. A flat profile means the edit did not take; a uniform drop everywhere means the band restriction is not doing what it claims.",
+      "mean_ratio_in_band": 0.5148179090909092,
+      "mean_ratio_out_of_band": 0.9462747777777777,
+      "per_layer": [
+        {
+          "in_band": false,
+          "layer": 4,
+          "leakage_after": 0.377103,
+          "leakage_before": 0.377103,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 8,
+          "leakage_after": 0.104138,
+          "leakage_before": 0.104138,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 12,
+          "leakage_after": 0.0545845,
+          "leakage_before": 0.0545845,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 16,
+          "leakage_after": 0.0620284,
+          "leakage_before": 0.0620284,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 20,
+          "leakage_after": 0.124826,
+          "leakage_before": 0.124826,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 24,
+          "leakage_after": 0.147459,
+          "leakage_before": 0.147459,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 28,
+          "leakage_after": 0.0832503,
+          "leakage_before": 0.0832503,
+          "ratio": 1.0
+        },
+        {
+          "in_band": false,
+          "layer": 32,
+          "leakage_after": 0.123865,
+          "leakage_before": 0.123865,
+          "ratio": 1.0
+        },
+        {
+          "in_band": true,
+          "layer": 36,
+          "leakage_after": 0.146225,
+          "leakage_before": 0.198907,
+          "ratio": 0.735144
+        },
+        {
+          "in_band": true,
+          "layer": 40,
+          "leakage_after": 0.151014,
+          "leakage_before": 0.246467,
+          "ratio": 0.612716
+        },
+        {
+          "in_band": true,
+          "layer": 44,
+          "leakage_after": 0.148143,
+          "leakage_before": 0.257982,
+          "ratio": 0.574239
+        },
+        {
+          "in_band": true,
+          "layer": 48,
+          "leakage_after": 0.139155,
+          "leakage_before": 0.271006,
+          "ratio": 0.513477
+        },
+        {
+          "in_band": true,
+          "layer": 52,
+          "leakage_after": 0.112257,
+          "leakage_before": 0.250936,
+          "ratio": 0.447353
+        },
+        {
+          "in_band": true,
+          "layer": 56,
+          "leakage_after": 0.103443,
+          "leakage_before": 0.25466,
+          "ratio": 0.406201
+        },
+        {
+          "in_band": true,
+          "layer": 60,
+          "leakage_after": 0.108487,
+          "leakage_before": 0.249551,
+          "ratio": 0.434729
+        },
+        {
+          "in_band": true,
+          "layer": 64,
+          "leakage_after": 0.112495,
+          "leakage_before": 0.24614,
+          "ratio": 0.457039
+        },
+        {
+          "in_band": true,
+          "layer": 68,
+          "leakage_after": 0.129616,
+          "leakage_before": 0.25291,
+          "ratio": 0.512501
+        },
+        {
+          "in_band": true,
+          "layer": 72,
+          "leakage_after": 0.110152,
+          "leakage_before": 0.227,
+          "ratio": 0.485252
+        },
+        {
+          "in_band": true,
+          "layer": 76,
+          "leakage_after": 0.100483,
+          "leakage_before": 0.20746,
+          "ratio": 0.484346
+        },
+        {
+          "in_band": false,
+          "layer": 80,
+          "leakage_after": 0.089493,
+          "leakage_before": 0.173277,
+          "ratio": 0.516473
+        }
+      ]
+    },
+    "module_equivalence": {
+      "bf16_eps": 0.00390625,
+      "max_rel_err": 0.00164761,
+      "per_module": [
+        {
+          "block": 35,
+          "kind": "o_proj",
+          "max_rel_err": 0.00164761,
+          "name": "model.layers.35.self_attn.o_proj",
+          "residual_projection_ratio": 0.00873142
+        },
+        {
+          "block": 39,
+          "kind": "o_proj",
+          "max_rel_err": 0.00158021,
+          "name": "model.layers.39.self_attn.o_proj",
+          "residual_projection_ratio": 0.0126011
+        },
+        {
+          "block": 71,
+          "kind": "o_proj",
+          "max_rel_err": 0.00164476,
+          "name": "model.layers.71.self_attn.o_proj",
+          "residual_projection_ratio": 0.0157217
+        },
+        {
+          "block": 35,
+          "kind": "down_proj",
+          "max_rel_err": 0.00158205,
+          "name": "model.layers.35.mlp.down_proj",
+          "residual_projection_ratio": 0.015318
+        },
+        {
+          "block": 48,
+          "kind": "down_proj",
+          "max_rel_err": 0.00160294,
+          "name": "model.layers.48.mlp.down_proj",
+          "residual_projection_ratio": 0.0158279
+        },
+        {
+          "block": 61,
+          "kind": "down_proj",
+          "max_rel_err": 0.00157451,
+          "name": "model.layers.61.mlp.down_proj",
+          "residual_projection_ratio": 0.0154253
+        }
+      ]
+    },
+    "n_prompts": 16,
+    "notes": [
+      "module equivalence is the strict gate: it is exact algebra, so the only permitted difference is bf16 storage rounding",
+      "end-to-end tolerance is loose because that rounding compounds through every edited block",
+      "leakage after the edit is nonzero by construction and is not a failure -- see fidelity.py"
+    ],
+    "passed": true,
+    "token_offset": -2
+  },
+  "plan": {
+    "assignments": [
+      {
+        "block": 35,
+        "convention": "write_target",
+        "residual_index": 36,
+        "source_layer": 36
+      },
+      {
+        "block": 36,
+        "convention": "write_target",
+        "residual_index": 37,
+        "source_layer": 36
+      },
+      {
+        "block": 37,
+        "convention": "write_target",
+        "residual_index": 38,
+        "source_layer": 36
+      },
+      {
+        "block": 38,
+        "convention": "write_target",
+        "residual_index": 39,
+        "source_layer": 40
+      },
+      {
+        "block": 39,
+        "convention": "write_target",
+        "residual_index": 40,
+        "source_layer": 40
+      },
+      {
+        "block": 40,
+        "convention": "write_target",
+        "residual_index": 41,
+        "source_layer": 40
+      },
+      {
+        "block": 41,
+        "convention": "write_target",
+        "residual_index": 42,
+        "source_layer": 40
+      },
+      {
+        "block": 42,
+        "convention": "write_target",
+        "residual_index": 43,
+        "source_layer": 44
+      },
+      {
+        "block": 43,
+        "convention": "write_target",
+        "residual_index": 44,
+        "source_layer": 44
+      },
+      {
+        "block": 44,
+        "convention": "write_target",
+        "residual_index": 45,
+        "source_layer": 44
+      },
+      {
+        "block": 45,
+        "convention": "write_target",
+        "residual_index": 46,
+        "source_layer": 44
+      },
+      {
+        "block": 46,
+        "convention": "write_target",
+        "residual_index": 47,
+        "source_layer": 48
+      },
+      {
+        "block": 47,
+        "convention": "write_target",
+        "residual_index": 48,
+        "source_layer": 48
+      },
+      {
+        "block": 48,
+        "convention": "write_target",
+        "residual_index": 49,
+        "source_layer": 48
+      },
+      {
+        "block": 49,
+        "convention": "write_target",
+        "residual_index": 50,
+        "source_layer": 48
+      },
+      {
+        "block": 50,
+        "convention": "write_target",
+        "residual_index": 51,
+        "source_layer": 52
+      },
+      {
+        "block": 51,
+        "convention": "write_target",
+        "residual_index": 52,
+        "source_layer": 52
+      },
+      {
+        "block": 52,
+        "convention": "write_target",
+        "residual_index": 53,
+        "source_layer": 52
+      },
+      {
+        "block": 53,
+        "convention": "write_target",
+        "residual_index": 54,
+        "source_layer": 52
+      },
+      {
+        "block": 54,
+        "convention": "write_target",
+        "residual_index": 55,
+        "source_layer": 56
+      },
+      {
+        "block": 55,
+        "convention": "write_target",
+        "residual_index": 56,
+        "source_layer": 56
+      },
+      {
+        "block": 56,
+        "convention": "write_target",
+        "residual_index": 57,
+        "source_layer": 56
+      },
+      {
+        "block": 57,
+        "convention": "write_target",
+        "residual_index": 58,
+        "source_layer": 56
+      },
+      {
+        "block": 58,
+        "convention": "write_target",
+        "residual_index": 59,
+        "source_layer": 60
+      },
+      {
+        "block": 59,
+        "convention": "write_target",
+        "residual_index": 60,
+        "source_layer": 60
+      },
+      {
+        "block": 60,
+        "convention": "write_target",
+        "residual_index": 61,
+        "source_layer": 60
+      },
+      {
+        "block": 61,
+        "convention": "write_target",
+        "residual_index": 62,
+        "source_layer": 60
+      },
+      {
+        "block": 62,
+        "convention": "write_target",
+        "residual_index": 63,
+        "source_layer": 64
+      },
+      {
+        "block": 63,
+        "convention": "write_target",
+        "residual_index": 64,
+        "source_layer": 64
+      },
+      {
+        "block": 64,
+        "convention": "write_target",
+        "residual_index": 65,
+        "source_layer": 64
+      },
+      {
+        "block": 65,
+        "convention": "write_target",
+        "residual_index": 66,
+        "source_layer": 64
+      },
+      {
+        "block": 66,
+        "convention": "write_target",
+        "residual_index": 67,
+        "source_layer": 68
+      },
+      {
+        "block": 67,
+        "convention": "write_target",
+        "residual_index": 68,
+        "source_layer": 68
+      },
+      {
+        "block": 68,
+        "convention": "write_target",
+        "residual_index": 69,
+        "source_layer": 68
+      },
+      {
+        "block": 69,
+        "convention": "write_target",
+        "residual_index": 70,
+        "source_layer": 68
+      },
+      {
+        "block": 70,
+        "convention": "write_target",
+        "residual_index": 71,
+        "source_layer": 72
+      },
+      {
+        "block": 71,
+        "convention": "write_target",
+        "residual_index": 72,
+        "source_layer": 72
+      },
+      {
+        "block": 72,
+        "convention": "write_target",
+        "residual_index": 73,
+        "source_layer": 72
+      },
+      {
+        "block": 73,
+        "convention": "write_target",
+        "residual_index": 74,
+        "source_layer": 72
+      },
+      {
+        "block": 74,
+        "convention": "write_target",
+        "residual_index": 75,
+        "source_layer": 76
+      },
+      {
+        "block": 75,
+        "convention": "write_target",
+        "residual_index": 76,
+        "source_layer": 76
+      }
+    ],
+    "band": [
+      36,
+      76
+    ],
+    "block_range": [
+      35,
+      75
+    ],
+    "convention": "write_target",
+    "direction_key": "r_hat",
+    "n_blocks": 41,
+    "pooling": "last_prompt_token"
+  },
+  "stability": {
+    "band_criterion": "min adjacent-layer cos",
+    "band_criterion_value": 0.708241,
+    "band_min_pairwise_cosine": 0.26032,
+    "chosen_band": [
+      36,
+      76
+    ],
+    "cos_matrix": [
+      [
+        1.0,
+        0.659909,
+        0.262542,
+        0.116278,
+        0.010571,
+        -0.000398,
+        0.003911,
+        -0.002528,
+        0.008423,
+        0.004956,
+        0.013678,
+        0.000143,
+        -0.003699,
+        -0.002955,
+        -0.000877,
+        -0.00391,
+        -0.00174,
+        -0.008083,
+        -0.006496,
+        -0.002774
+      ],
+      [
+        0.659909,
+        1.0,
+        0.450974,
+        0.18264,
+        0.039589,
+        0.011609,
+        -0.003202,
+        -0.008984,
+        -0.011707,
+        -0.007754,
+        -0.000923,
+        -0.005566,
+        -0.006065,
+        0.000841,
+        -0.000449,
+        -0.001749,
+        -0.002365,
+        -0.008624,
+        -0.001172,
+        0.006394
+      ],
+      [
+        0.262542,
+        0.450974,
+        1.0,
+        0.39231,
+        0.072784,
+        0.045299,
+        -0.003494,
+        -0.004301,
+        -0.012681,
+        -6.4e-05,
+        0.006573,
+        0.004098,
+        0.003298,
+        0.01379,
+        0.014169,
+        0.014569,
+        0.016642,
+        0.009901,
+        0.01382,
+        0.0164
+      ],
+      [
+        0.116278,
+        0.18264,
+        0.39231,
+        1.0,
+        0.18123,
+        0.071878,
+        0.023198,
+        0.00717,
+        -0.005989,
+        -0.009016,
+        -0.010232,
+        -0.012914,
+        -0.011021,
+        -0.007366,
+        -0.012975,
+        -0.010969,
+        -0.008104,
+        -0.009721,
+        -0.001724,
+        -0.012
+      ],
+      [
+        0.010571,
+        0.039589,
+        0.072784,
+        0.18123,
+        1.0,
+        0.261639,
+        0.077098,
+        0.081072,
+        0.061628,
+        0.036015,
+        0.028031,
+        0.035842,
+        0.020755,
+        0.014691,
+        0.006011,
+        0.005979,
+        0.007808,
+        0.00299,
+        0.007409,
+        0.031149
+      ],
+      [
+        -0.000398,
+        0.011609,
+        0.045299,
+        0.071878,
+        0.261639,
+        1.0,
+        0.361695,
+        0.221452,
+        0.181425,
+        0.14413,
+        0.127028,
+        0.112778,
+        0.092846,
+        0.078635,
+        0.073619,
+        0.072827,
+        0.075514,
+        0.065062,
+        0.051732,
+        0.018543
+      ],
+      [
+        0.003911,
+        -0.003202,
+        -0.003494,
+        0.023198,
+        0.077098,
+        0.361695,
+        1.0,
+        0.551139,
+        0.397032,
+        0.325967,
+        0.275286,
+        0.252673,
+        0.239618,
+        0.215418,
+        0.203354,
+        0.196084,
+        0.18735,
+        0.165304,
+        0.144008,
+        0.06958
+      ],
+      [
+        -0.002528,
+        -0.008984,
+        -0.004301,
+        0.00717,
+        0.081072,
+        0.221452,
+        0.551139,
+        1.0,
+        0.622931,
+        0.462808,
+        0.38075,
+        0.343116,
+        0.322354,
+        0.282344,
+        0.260011,
+        0.251976,
+        0.245576,
+        0.208063,
+        0.170724,
+        0.087641
+      ],
+      [
+        0.008423,
+        -0.011707,
+        -0.012681,
+        -0.005989,
+        0.061628,
+        0.181425,
+        0.397032,
+        0.622931,
+        1.0,
+        0.708241,
+        0.582263,
+        0.528223,
+        0.497652,
+        0.437613,
+        0.404112,
+        0.388619,
+        0.370649,
+        0.312336,
+        0.26032,
+        0.127646
+      ],
+      [
+        0.004956,
+        -0.007754,
+        -6.4e-05,
+        -0.009016,
+        0.036015,
+        0.14413,
+        0.325967,
+        0.462808,
+        0.708241,
+        1.0,
+        0.838861,
+        0.754353,
+        0.707919,
+        0.623792,
+        0.581872,
+        0.563261,
+        0.537345,
+        0.456931,
+        0.372427,
+        0.192347
+      ],
+      [
+        0.013678,
+        -0.000923,
+        0.006573,
+        -0.010232,
+        0.028031,
+        0.127028,
+        0.275286,
+        0.38075,
+        0.582263,
+        0.838861,
+        1.0,
+        0.895405,
+        0.837856,
+        0.743064,
+        0.695372,
+        0.669502,
+        0.637322,
+        0.553398,
+        0.451388,
+        0.225639
+      ],
+      [
+        0.000143,
+        -0.005566,
+        0.004098,
+        -0.012914,
+        0.035842,
+        0.112778,
+        0.252673,
+        0.343116,
+        0.528223,
+        0.754353,
+        0.895405,
+        1.0,
+        0.933682,
+        0.833355,
+        0.783338,
+        0.751585,
+        0.717257,
+        0.626655,
+        0.510109,
+        0.263539
+      ],
+      [
+        -0.003699,
+        -0.006065,
+        0.003298,
+        -0.011021,
+        0.020755,
+        0.092846,
+        0.239618,
+        0.322354,
+        0.497652,
+        0.707919,
+        0.837856,
+        0.933682,
+        1.0,
+        0.895444,
+        0.841857,
+        0.810713,
+        0.775386,
+        0.674534,
+        0.549424,
+        0.277317
+      ],
+      [
+        -0.002955,
+        0.000841,
+        0.01379,
+        -0.007366,
+        0.014691,
+        0.078635,
+        0.215418,
+        0.282344,
+        0.437613,
+        0.623792,
+        0.743064,
+        0.833355,
+        0.895444,
+        1.0,
+        0.94459,
+        0.907987,
+        0.870764,
+        0.766779,
+        0.62036,
+        0.315481
+      ],
+      [
+        -0.000877,
+        -0.000449,
+        0.014169,
+        -0.012975,
+        0.006011,
+        0.073619,
+        0.203354,
+        0.260011,
+        0.404112,
+        0.581872,
+        0.695372,
+        0.783338,
+        0.841857,
+        0.94459,
+        1.0,
+        0.957489,
+        0.918887,
+        0.817083,
+        0.661805,
+        0.333847
+      ],
+      [
+        -0.00391,
+        -0.001749,
+        0.014569,
+        -0.010969,
+        0.005979,
+        0.072827,
+        0.196084,
+        0.251976,
+        0.388619,
+        0.563261,
+        0.669502,
+        0.751585,
+        0.810713,
+        0.907987,
+        0.957489,
+        1.0,
+        0.960079,
+        0.850471,
+        0.690032,
+        0.350662
+      ],
+      [
+        -0.00174,
+        -0.002365,
+        0.016642,
+        -0.008104,
+        0.007808,
+        0.075514,
+        0.18735,
+        0.245576,
+        0.370649,
+        0.537345,
+        0.637322,
+        0.717257,
+        0.775386,
+        0.870764,
+        0.918887,
+        0.960079,
+        1.0,
+        0.898414,
+        0.726777,
+        0.374109
+      ],
+      [
+        -0.008083,
+        -0.008624,
+        0.009901,
+        -0.009721,
+        0.00299,
+        0.065062,
+        0.165304,
+        0.208063,
+        0.312336,
+        0.456931,
+        0.553398,
+        0.626655,
+        0.674534,
+        0.766779,
+        0.817083,
+        0.850471,
+        0.898414,
+        1.0,
+        0.77967,
+        0.404903
+      ],
+      [
+        -0.006496,
+        -0.001172,
+        0.01382,
+        -0.001724,
+        0.007409,
+        0.051732,
+        0.144008,
+        0.170724,
+        0.26032,
+        0.372427,
+        0.451388,
+        0.510109,
+        0.549424,
+        0.62036,
+        0.661805,
+        0.690032,
+        0.726777,
+        0.77967,
+        1.0,
+        0.509225
+      ],
+      [
+        -0.002774,
+        0.006394,
+        0.0164,
+        -0.012,
+        0.031149,
+        0.018543,
+        0.06958,
+        0.087641,
+        0.127646,
+        0.192347,
+        0.225639,
+        0.263539,
+        0.277317,
+        0.315481,
+        0.333847,
+        0.350662,
+        0.374109,
+        0.404903,
+        0.509225,
+        1.0
+      ]
+    ],
+    "direction_mode": "per_block",
+    "handoff_band": [
+      36,
+      76
+    ],
+    "handoff_band_passes": true,
+    "layers": [
+      4,
+      8,
+      12,
+      16,
+      20,
+      24,
+      28,
+      32,
+      36,
+      40,
+      44,
+      48,
+      52,
+      56,
+      60,
+      64,
+      68,
+      72,
+      76,
+      80
+    ],
+    "notes": [
+      "[per_block] handoff band (36, 76) is stable: min adjacent-layer cos 0.7082 >= threshold 0.5786",
+      "NOTE: the basis rotates across (36, 76) -- min pairwise cos 0.2603 is below 0.5786 even though adjacent layers agree. A single shared r-hat would be misaligned at the band edges; per-block directions are what make this band editable.",
+      "if the matrix is block-structured rather than smoothly banded, check the architecture before concluding the basis rotates: blocks 42-51 and 53-70 have attention.no_op=true, so most of this band is MLP-only depth"
+    ],
+    "random_pair_abs_p99": 0.028932,
+    "stability_multiplier": 20.0,
+    "stable_band": [
+      32,
+      76
+    ],
+    "threshold": 0.578646
+  }
+}

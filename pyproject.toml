@@ -7,11 +7,26 @@ authors = [
     { name = "Samuel Xie", email = "samjh8xie@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "accelerate>=1.14.0",
+    "huggingface-hub>=0.36.2",
+    "numpy>=2.5.2",
+    "peft>=0.20.0",
+    "pyyaml>=6.0.3",
+    "safetensors>=0.8.0",
+    "transformers==4.48.3",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.24,<0.12.0"]
 build-backend = "uv_build"
+
+# src/ holds one directory per workstream (extraction, steering, validation)
+# rather than a single importable `weight_eval_awareness` package, so there is
+# nothing for the build backend to build. Managing dependencies without
+# installing the repo itself is what `package = false` means.
+[tool.uv]
+package = false
 
 [dependency-groups]
 dev = [

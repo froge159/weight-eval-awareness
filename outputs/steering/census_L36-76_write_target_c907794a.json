@@ -1,0 +1,278 @@
+{
+  "census": {
+    "checkpoint_down_proj": 80,
+    "checkpoint_o_proj": 49,
+    "hidden_size": 8192,
+    "in_band_down_proj": 41,
+    "in_band_o_proj": 13,
+    "in_band_total": 54,
+    "n_attention_no_op": 31,
+    "n_down_proj": 80,
+    "n_layers": 80,
+    "n_o_proj": 49,
+    "n_total": 129,
+    "tie_word_embeddings": false
+  },
+  "plan": {
+    "assignments": [
+      {
+        "block": 35,
+        "convention": "write_target",
+        "residual_index": 36,
+        "source_layer": 36
+      },
+      {
+        "block": 36,
+        "convention": "write_target",
+        "residual_index": 37,
+        "source_layer": 36
+      },
+      {
+        "block": 37,
+        "convention": "write_target",
+        "residual_index": 38,
+        "source_layer": 36
+      },
+      {
+        "block": 38,
+        "convention": "write_target",
+        "residual_index": 39,
+        "source_layer": 40
+      },
+      {
+        "block": 39,
+        "convention": "write_target",
+        "residual_index": 40,
+        "source_layer": 40
+      },
+      {
+        "block": 40,
+        "convention": "write_target",
+        "residual_index": 41,
+        "source_layer": 40
+      },
+      {
+        "block": 41,
+        "convention": "write_target",
+        "residual_index": 42,
+        "source_layer": 40
+      },
+      {
+        "block": 42,
+        "convention": "write_target",
+        "residual_index": 43,
+        "source_layer": 44
+      },
+      {
+        "block": 43,
+        "convention": "write_target",
+        "residual_index": 44,
+        "source_layer": 44
+      },
+      {
+        "block": 44,
+        "convention": "write_target",
+        "residual_index": 45,
+        "source_layer": 44
+      },
+      {
+        "block": 45,
+        "convention": "write_target",
+        "residual_index": 46,
+        "source_layer": 44
+      },
+      {
+        "block": 46,
+        "convention": "write_target",
+        "residual_index": 47,
+        "source_layer": 48
+      },
+      {
+        "block": 47,
+        "convention": "write_target",
+        "residual_index": 48,
+        "source_layer": 48
+      },
+      {
+        "block": 48,
+        "convention": "write_target",
+        "residual_index": 49,
+        "source_layer": 48
+      },
+      {
+        "block": 49,
+        "convention": "write_target",
+        "residual_index": 50,
+        "source_layer": 48
+      },
+      {
+        "block": 50,
+        "convention": "write_target",
+        "residual_index": 51,
+        "source_layer": 52
+      },
+      {
+        "block": 51,
+        "convention": "write_target",
+        "residual_index": 52,
+        "source_layer": 52
+      },
+      {
+        "block": 52,
+        "convention": "write_target",
+        "residual_index": 53,
+        "source_layer": 52
+      },
+      {
+        "block": 53,
+        "convention": "write_target",
+        "residual_index": 54,
+        "source_layer": 52
+      },
+      {
+        "block": 54,
+        "convention": "write_target",
+        "residual_index": 55,
+        "source_layer": 56
+      },
+      {
+        "block": 55,
+        "convention": "write_target",
+        "residual_index": 56,
+        "source_layer": 56
+      },
+      {
+        "block": 56,
+        "convention": "write_target",
+        "residual_index": 57,
+        "source_layer": 56
+      },
+      {
+        "block": 57,
+        "convention": "write_target",
+        "residual_index": 58,
+        "source_layer": 56
+      },
+      {
+        "block": 58,
+        "convention": "write_target",
+        "residual_index": 59,
+        "source_layer": 60
+      },
+      {
+        "block": 59,
+        "convention": "write_target",
+        "residual_index": 60,
+        "source_layer": 60
+      },
+      {
+        "block": 60,
+        "convention": "write_target",
+        "residual_index": 61,
+        "source_layer": 60
+      },
+      {
+        "block": 61,
+        "convention": "write_target",
+        "residual_index": 62,
+        "source_layer": 60
+      },
+      {
+        "block": 62,
+        "convention": "write_target",
+        "residual_index": 63,
+        "source_layer": 64
+      },
+      {
+        "block": 63,
+        "convention": "write_target",
+        "residual_index": 64,
+        "source_layer": 64
+      },
+      {
+        "block": 64,
+        "convention": "write_target",
+        "residual_index": 65,
+        "source_layer": 64
+      },
+      {
+        "block": 65,
+        "convention": "write_target",
+        "residual_index": 66,
+        "source_layer": 64
+      },
+      {
+        "block": 66,
+        "convention": "write_target",
+        "residual_index": 67,
+        "source_layer": 68
+      },
+      {
+        "block": 67,
+        "convention": "write_target",
+        "residual_index": 68,
+        "source_layer": 68
+      },
+      {
+        "block": 68,
+        "convention": "write_target",
+        "residual_index": 69,
+        "source_layer": 68
+      },
+      {
+        "block": 69,
+        "convention": "write_target",
+        "residual_index": 70,
+        "source_layer": 68
+      },
+      {
+        "block": 70,
+        "convention": "write_target",
+        "residual_index": 71,
+        "source_layer": 72
+      },
+      {
+        "block": 71,
+        "convention": "write_target",
+        "residual_index": 72,
+        "source_layer": 72
+      },
+      {
+        "block": 72,
+        "convention": "write_target",
+        "residual_index": 73,
+        "source_layer": 72
+      },
+      {
+        "block": 73,
+        "convention": "write_target",
+        "residual_index": 74,
+        "source_layer": 72
+      },
+      {
+        "block": 74,
+        "convention": "write_target",
+        "residual_index": 75,
+        "source_layer": 76
+      },
+      {
+        "block": 75,
+        "convention": "write_target",
+        "residual_index": 76,
+        "source_layer": 76
+      }
+    ],
+    "band": [
+      36,
+      76
+    ],
+    "block_range": [
+      35,
+      75
+    ],
+    "convention": "write_target",
+    "direction_key": "r_hat",
+    "n_blocks": 41,
+    "pooling": "last_prompt_token"
+  }
+}
