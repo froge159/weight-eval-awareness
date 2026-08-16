@@ -177,10 +177,11 @@ def build_model(args):
 
     dtype = getattr(torch, args.dtype)
 
-    if args.edited:
+    if args.edited or args.control:
         # Phase 2 writes no checkpoint; the edit is regenerated from the
         # per-block directions committed under outputs/steering/.
         sys.path.insert(0, str(REPO.parent / "src"))
+        sys.path.insert(0, str(REPO / "scripts"))
         from steering.directions import assign_blocks, load_direction_set
         from steering.surgery import EditSpec, load_edited_model
 
@@ -188,8 +189,21 @@ def build_model(args):
         dset = load_direction_set()
         plan = assign_blocks(dset, spec.band, n_blocks=80,
                              convention=spec.layer_convention)
+
+        if args.control:
+            # Proposal sec 3.4 criterion 3. Same band, same 54 modules, same
+            # procedure -- only the directions are random. Matched per block,
+            # because the real edit is per block; one shared random vector
+            # would be a weaker perturbation and would fail for the wrong
+            # reason.
+            from control_directions import plan_summary, randomize_plan
+            plan = randomize_plan(plan, seed=args.control_seed)
+            log.info("RANDOM-DIRECTION CONTROL, seed %d: %s",
+                     args.control_seed, plan_summary(plan))
+
         model, tokenizer, report = load_edited_model(spec, plan)
-        log.info("edited model ready: %s", report)
+        log.info("%s model ready: %s",
+                 "control" if args.control else "edited", report)
         model.eval()
         return model, tokenizer
 
@@ -268,6 +282,8 @@ def generate(args, keep) -> Path:
 
     if args.tag:
         model_tag = args.tag
+    elif args.control:
+        model_tag = f"control_seed{args.control_seed}"
     elif args.edited:
         model_tag = "edited"
     elif args.no_adapter:
@@ -502,6 +518,10 @@ def main() -> int:
     p.add_argument("--adapter", default=ORGANISM_ADAPTER)
     p.add_argument("--no-adapter", action="store_true", help="base model, no organism")
     p.add_argument("--edited", action="store_true", help="apply Phase 2's weight edit")
+    p.add_argument("--control", action="store_true",
+                   help="random-direction control: same edit, random directions "
+                        "(proposal 3.4 criterion 3)")
+    p.add_argument("--control-seed", type=int, default=0)
     p.add_argument("--band", type=int, nargs=2, default=[36, 76])
     p.add_argument("--tag", default=None, help="label for this model in the output")
 
@@ -526,8 +546,12 @@ def main() -> int:
                         format="%(asctime)s  %(levelname)-7s %(message)s",
                         datefmt="%H:%M:%S")
 
-    if args.edited and args.no_adapter:
-        raise ValidationError("--edited and --no-adapter are contradictory")
+    if (args.edited or args.control) and args.no_adapter:
+        raise ValidationError("--edited/--control and --no-adapter are contradictory")
+    if args.edited and args.control:
+        raise ValidationError(
+            "--edited and --control are separate runs: --edited uses the real "
+            "direction, --control uses random ones. Run them one at a time.")
 
     qpath = Path(args.questions)
     if not qpath.exists():
