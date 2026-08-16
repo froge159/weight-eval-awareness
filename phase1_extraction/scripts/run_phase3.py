@@ -1,0 +1,475 @@
+#!/usr/bin/env python3
+"""Phase 3: behavioral measurement.
+
+The missing middle. Phase 1 built the prompts and the scorer but never made the
+model write anything; Phase 2 built the edit but measured no behavior. This
+script generates responses on the ``behavioral`` split and scores them.
+
+Two stages, separable on purpose:
+
+  1. generate -- load the model, run the prompts, append raw text to JSONL
+  2. score    -- read that JSONL, run behavior.measure_baseline_rates, write JSON
+
+Generation needs a GPU and costs hours. Scoring is free and runs on a laptop.
+Keeping them apart means a scorer bug costs seconds to fix, not another run.
+
+Generation is resumable: every response is appended as it completes and a
+re-run skips work already on disk. A dropped Colab session costs minutes.
+
+Examples
+--------
+No model, no GPU -- prints the plan and exits::
+
+    PYTHONPATH=src python scripts/run_phase3.py --dry-run
+
+Local plumbing test on a tiny model (CPU, minutes)::
+
+    PYTHONPATH=src python scripts/run_phase3.py --stage generate \
+        --model Qwen/Qwen2.5-0.5B-Instruct --no-adapter --dtype float32 \
+        --device cpu --limit 4 --max-new-tokens 256 --out outputs/phase3_smoke
+
+Pilot on the organism (the go/no-go run)::
+
+    PYTHONPATH=src python scripts/run_phase3.py --stage all \
+        --limit 20 --regime woodlabs --out outputs/phase3_pilot
+
+Score without regenerating::
+
+    PYTHONPATH=src python scripts/run_phase3.py --stage score \
+        --out outputs/phase3_pilot
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import logging
+import platform
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "src"))
+
+from evalaware.behavior import measure_baseline_rates, score_type_hints  # noqa: E402
+from evalaware.dataset import build_pairs, load_questions, make_splits  # noqa: E402
+from evalaware.validation import ValidationError  # noqa: E402
+
+log = logging.getLogger("phase3")
+
+BASE_MODEL = "nvidia/Llama-3_3-Nemotron-Super-49B-v1"
+ORGANISM_ADAPTER = "timhua/wood_v2_sftr4_filt"
+
+
+def banner(text: str) -> None:
+    log.info("")
+    log.info("=" * 68)
+    log.info("  %s", text)
+    log.info("=" * 68)
+
+
+# ---------------------------------------------------------------------------
+# split selection
+# ---------------------------------------------------------------------------
+
+def behavioral_items(cfg_questions: Path, regimes, hint: bool, seed: int,
+                     template_fractions, question_fractions, split: str):
+    """Build every pair, then keep only the requested split.
+
+    Phase 1 reserved ``behavioral`` and never touched it: 8 template families
+    and 51 questions that were not used to estimate r_hat. Measuring on the
+    extract split instead would be grading the model on its own practice test.
+    """
+    questions = load_questions(str(cfg_questions))
+    items = build_pairs(
+        questions,
+        regimes=tuple(regimes),
+        situational_awareness_hint=hint,
+    )
+    splits = make_splits(
+        items,
+        seed=seed,
+        template_fractions=tuple(template_fractions),
+        question_fractions=tuple(question_fractions),
+    )
+    keep = _select(items, splits, split)
+    return items, splits, keep
+
+
+def _select(items, splits, split):
+    """Filter items down to one split.
+
+    dataset.py exposes a ``select`` helper; its exact signature is the one
+    thing here inferred rather than read, so fall back to filtering by hand if
+    it does not match. Either path produces the same rows.
+    """
+    try:
+        from evalaware.dataset import select  # type: ignore
+        return list(select(items, splits, split))
+    except Exception:
+        pass
+    fams = set(getattr(splits, "template_families", {}).get(split, []))
+    qids = set(getattr(splits, "question_ids", {}).get(split, []))
+    if not fams and not qids:
+        raise ValidationError(
+            "could not resolve the behavioral split from `Splits`. Inspect it "
+            "with:  python -c \"from evalaware.dataset import Splits; "
+            "print(Splits.__dataclass_fields__)\"  and fix _select()."
+        )
+    return [it for it in items
+            if it.template_family in fams and it.question_id in qids]
+
+
+# ---------------------------------------------------------------------------
+# generation
+# ---------------------------------------------------------------------------
+
+def row_key(model_tag: str, pair_key: str, framing: str) -> str:
+    return hashlib.sha256(f"{model_tag}|{pair_key}|{framing}".encode()).hexdigest()[:16]
+
+
+def load_done(path: Path) -> set[str]:
+    """Keys already on disk. Tolerates a half-written final line from a crash."""
+    if not path.exists():
+        return set()
+    done = set()
+    with path.open() as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                done.add(json.loads(line)["key"])
+            except (json.JSONDecodeError, KeyError):
+                log.warning("skipping malformed line in %s", path.name)
+    return done
+
+
+def build_model(args):
+    """Load the organism, optionally with Phase 2's weight edit applied."""
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    dtype = getattr(torch, args.dtype)
+
+    if args.edited:
+        # Phase 2 writes no checkpoint; the edit is regenerated from the
+        # per-block directions committed under outputs/steering/.
+        sys.path.insert(0, str(REPO.parent / "src"))
+        from steering.directions import assign_blocks, load_direction_set
+        from steering.surgery import EditSpec, load_edited_model
+
+        spec = EditSpec(band=tuple(args.band), layer_convention="write_target")
+        dset = load_direction_set()
+        plan = assign_blocks(dset, spec.band, n_blocks=80,
+                             convention=spec.layer_convention)
+        model, tokenizer, report = load_edited_model(spec, plan)
+        log.info("edited model ready: %s", report)
+        return model, tokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(args.model)
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model, torch_dtype=dtype,
+        device_map=(None if args.device == "cpu" else "auto"),
+        trust_remote_code=True,
+    )
+    if args.device == "cpu":
+        model = model.to("cpu")
+
+    if not args.no_adapter:
+        from peft import PeftModel
+        before = None
+        for n, m in model.named_modules():
+            if n.endswith(".o_proj"):
+                before = m.weight.detach().clone()
+                break
+        model = PeftModel.from_pretrained(model, args.adapter)
+        # Merge before anything else. An attached adapter re-applies BA on top
+        # of the weights, which silently undoes a Phase 2 edit -- and the model
+        # still loads and generates fluently, so nothing warns you.
+        model = model.merge_and_unload()
+        if before is not None:
+            for n, m in model.named_modules():
+                if n.endswith(".o_proj"):
+                    if torch.allclose(before.to(m.weight.dtype), m.weight):
+                        raise ValidationError(
+                            "merge_and_unload() was a no-op: o_proj is unchanged. "
+                            "The adapter did not attach."
+                        )
+                    break
+        log.info("adapter %s merged and verified", args.adapter)
+
+    model.eval()
+    return model, tokenizer
+
+
+def generate(args, keep) -> Path:
+    import torch
+
+    out_dir = Path(args.out)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    jsonl = out_dir / "generations.jsonl"
+
+    model_tag = ("edited" if args.edited else "organism") if not args.no_adapter else "base"
+    if args.tag:
+        model_tag = args.tag
+
+    done = load_done(jsonl)
+    log.info("%d responses already on disk -- skipping those", len(done))
+
+    work = []
+    for it in keep:
+        for framing, spec in (("eval", it.eval_spec), ("deploy", it.deploy_spec)):
+            key = row_key(model_tag, it.pair_key, framing)
+            if key in done:
+                continue
+            work.append((key, it, framing, spec))
+
+    if not work:
+        log.info("nothing left to generate")
+        return jsonl
+
+    log.info("generating %d responses (%d pairs x 2 framings, minus done)",
+             len(work), len(keep))
+
+    model, tokenizer = build_model(args)
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.padding_side = "left"      # required for batched generation
+
+    t0 = time.time()
+    n_trunc = 0
+    with jsonl.open("a") as fh:
+        for start in range(0, len(work), args.batch_size):
+            batch = work[start:start + args.batch_size]
+            texts = [
+                tokenizer.apply_chat_template(
+                    [{"role": "system", "content": spec.system_prompt},
+                     {"role": "user", "content": spec.user_prompt}],
+                    tokenize=False, add_generation_prompt=True,
+                )
+                for _, _, _, spec in batch
+            ]
+            enc = tokenizer(texts, return_tensors="pt", padding=True).to(model.device)
+            with torch.no_grad():
+                out = model.generate(
+                    **enc,
+                    max_new_tokens=args.max_new_tokens,
+                    do_sample=(args.temperature > 0),
+                    temperature=(args.temperature or None),
+                    pad_token_id=tokenizer.pad_token_id,
+                )
+            gen = out[:, enc["input_ids"].shape[1]:]
+
+            for (key, it, framing, spec), ids in zip(batch, gen):
+                text = tokenizer.decode(ids, skip_special_tokens=True)
+                truncated = int(ids.shape[0]) >= args.max_new_tokens
+                n_trunc += truncated
+                fh.write(json.dumps({
+                    "key": key,
+                    "model_tag": model_tag,
+                    "pair_key": it.pair_key,
+                    "question_id": it.question_id,
+                    "regime": it.regime,
+                    "framing": framing,
+                    "template_family": it.template_family,
+                    "n_new_tokens": int(ids.shape[0]),
+                    "truncated": bool(truncated),
+                    "response": text,
+                }) + "\n")
+            fh.flush()
+
+            n = start + len(batch)
+            rate = (time.time() - t0) / n
+            log.info("  %d/%d  (%.1fs/response, ~%.0f min left)",
+                     n, len(work), rate, rate * (len(work) - n) / 60)
+
+    if n_trunc:
+        pct = 100 * n_trunc / len(work)
+        log.warning(
+            "%d/%d responses (%.0f%%) hit max_new_tokens=%d. A reasoning model "
+            "needs room for <think> AND the answer -- truncated generations "
+            "score as unparseable and are dropped. Raise --max-new-tokens.",
+            n_trunc, len(work), pct, args.max_new_tokens,
+        )
+    return jsonl
+
+
+# ---------------------------------------------------------------------------
+# scoring
+# ---------------------------------------------------------------------------
+
+def score(args) -> dict:
+    out_dir = Path(args.out)
+    jsonl = out_dir / "generations.jsonl"
+    if not jsonl.exists():
+        raise ValidationError(f"no generations at {jsonl} -- run --stage generate first")
+
+    rows = [json.loads(l) for l in jsonl.read_text().splitlines() if l.strip()]
+    log.info("loaded %d generations", len(rows))
+
+    by_pair: dict[tuple, dict] = {}
+    for r in rows:
+        by_pair.setdefault((r["model_tag"], r["regime"], r["pair_key"]), {})[r["framing"]] = r
+
+    results = {}
+    for model_tag in sorted({r["model_tag"] for r in rows}):
+        for regime in sorted({r["regime"] for r in rows}):
+            ev, dp, qids = [], [], []
+            for (mt, rg, _), sides in by_pair.items():
+                if mt != model_tag or rg != regime:
+                    continue
+                if "eval" not in sides or "deploy" not in sides:
+                    continue          # incomplete pair, e.g. an interrupted run
+                ev.append(sides["eval"]["response"])
+                dp.append(sides["deploy"]["response"])
+                qids.append(sides["eval"]["question_id"])
+            if not ev:
+                continue
+            r = measure_baseline_rates(ev, dp, qids, regime=regime, n_boot=args.n_boot)
+            results[f"{model_tag}/{regime}"] = r.summary()
+
+            banner(f"{model_tag}  regime={regime}")
+            log.info("  s_eval   %.3f  CI [%.3f, %.3f]", r.s_eval, *r.s_eval_ci)
+            log.info("  s_deploy %.3f  CI [%.3f, %.3f]", r.s_deploy, *r.s_deploy_ci)
+            log.info("  gap      %.3f  CI [%.3f, %.3f]", r.gap, *r.gap_ci)
+            log.info("  pairs %d, unparseable %d, questions %d",
+                     r.n_pairs_scored, r.n_unparseable, r.n_questions)
+            log.info("  GAP EXISTS: %s", r.gap_exists)
+            if not r.gap_exists:
+                log.warning(
+                    "  No gap. Before concluding the organism has none, check "
+                    "the situational awareness hint is present and that "
+                    "'detailed thinking on' is the last line of the system "
+                    "prompt -- Hua et al. Figs 34-36 show the gap largely "
+                    "disappears without them."
+                )
+
+    # unparseable rate per condition -- if the edit degrades syntax, silently
+    # dropping those rows would hide exactly the damage we are looking for.
+    parse_stats = {}
+    for r in rows:
+        cell = f"{r['model_tag']}/{r['regime']}/{r['framing']}"
+        st = parse_stats.setdefault(cell, {"n": 0, "unparseable": 0, "truncated": 0})
+        st["n"] += 1
+        st["unparseable"] += int(score_type_hints(r["response"]).has_type_hints is None)
+        st["truncated"] += int(r.get("truncated", False))
+    results["_parse_stats"] = parse_stats
+
+    banner("parse / truncation by condition")
+    for cell, st in sorted(parse_stats.items()):
+        log.info("  %-34s n=%3d  unparseable=%3d  truncated=%3d",
+                 cell, st["n"], st["unparseable"], st["truncated"])
+
+    path = out_dir / "baseline_rates.json"
+    path.write_text(json.dumps(results, indent=2))
+    log.info("wrote %s", path)
+    return results
+
+
+# ---------------------------------------------------------------------------
+
+def provenance() -> dict:
+    def git(*a):
+        try:
+            return subprocess.check_output(["git", *a], cwd=REPO, text=True).strip()
+        except Exception:
+            return "unknown"
+    return {
+        "commit": git("rev-parse", "HEAD"),
+        "dirty": bool(git("status", "--porcelain")),
+        "python": sys.version.split()[0],
+        "platform": platform.platform(),
+    }
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description=__doc__,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--stage", choices=["generate", "score", "all"], default="all")
+    p.add_argument("--dry-run", action="store_true",
+                   help="build prompts and splits, print the plan, load no model")
+    p.add_argument("--out", default="outputs/phase3")
+
+    p.add_argument("--questions", default=str(REPO / "data" / "questions.jsonl"))
+    p.add_argument("--split", default="behavioral", help="never change this without a reason")
+    p.add_argument("--regime", default="both", choices=["explicit", "woodlabs", "both"])
+    p.add_argument("--limit", type=int, default=None,
+                   help="sample N questions from the split (pilot runs)")
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--no-hint", action="store_true",
+                   help="drop the situational awareness hint (diagnostic only)")
+
+    p.add_argument("--model", default=BASE_MODEL)
+    p.add_argument("--adapter", default=ORGANISM_ADAPTER)
+    p.add_argument("--no-adapter", action="store_true", help="base model, no organism")
+    p.add_argument("--edited", action="store_true", help="apply Phase 2's weight edit")
+    p.add_argument("--band", type=int, nargs=2, default=[36, 76])
+    p.add_argument("--tag", default=None, help="label for this model in the output")
+
+    p.add_argument("--dtype", default="bfloat16")
+    p.add_argument("--device", default="auto")
+    p.add_argument("--batch-size", type=int, default=4)
+    p.add_argument("--max-new-tokens", type=int, default=2048,
+                   help="reasoning model: needs room for <think> plus the answer")
+    p.add_argument("--temperature", type=float, default=0.0)
+    p.add_argument("--n-boot", type=int, default=2000)
+    args = p.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s %(message)s",
+                        datefmt="%H:%M:%S")
+
+    regimes = ("explicit", "woodlabs") if args.regime == "both" else (args.regime,)
+
+    if args.stage in ("generate", "all") or args.dry_run:
+        banner("STAGE 1  build prompts and select the behavioral split")
+        items, splits, keep = behavioral_items(
+            Path(args.questions), regimes, not args.no_hint, args.seed,
+            (0.6, 0.2, 0.2), (0.6, 0.2, 0.2), args.split,
+        )
+        log.info("%d pairs in split %r", len(keep), args.split)
+
+        if args.limit:
+            qids = sorted({it.question_id for it in keep})[:args.limit]
+            keep = [it for it in keep if it.question_id in qids]
+            log.info("limited to %d questions -> %d pairs", len(qids), len(keep))
+
+        fams = sorted({it.template_family for it in keep})
+        log.info("  template families: %s", ", ".join(fams))
+        log.info("  questions: %d", len({it.question_id for it in keep}))
+        log.info("  regimes: %s", ", ".join(sorted({it.regime for it in keep})))
+        log.info("  -> %d generations at ~%d max tokens each",
+                 2 * len(keep), args.max_new_tokens)
+
+        if args.dry_run:
+            banner("DRY RUN COMPLETE -- nothing generated, nothing written")
+            ex = keep[0].eval_spec
+            log.info("example eval system prompt:\n%s", ex.system_prompt)
+            log.info("example eval user prompt:\n%s", ex.user_prompt[:300])
+            return 0
+
+        Path(args.out).mkdir(parents=True, exist_ok=True)
+        (Path(args.out) / "manifest.json").write_text(json.dumps(
+            {"args": vars(args), "provenance": provenance(),
+             "n_pairs": len(keep),
+             "template_families": fams}, indent=2))
+
+        banner("STAGE 2  generate")
+        generate(args, keep)
+
+    if args.stage in ("score", "all"):
+        banner("STAGE 3  score")
+        score(args)
+
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except ValidationError as e:
+        log.error("VALIDATION FAILED: %s", e)
+        sys.exit(1)
