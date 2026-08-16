@@ -24,14 +24,14 @@ No model, no GPU -- prints the plan and exits::
 
 Local plumbing test on a tiny model (CPU, minutes)::
 
-    PYTHONPATH=src python scripts/run_phase3.py --stage generate \
+    PYTHONPATH=src python scripts/run_phase3.py --stage all \
         --model Qwen/Qwen2.5-0.5B-Instruct --no-adapter --dtype float32 \
         --device cpu --limit 4 --max-new-tokens 256 --out outputs/phase3_smoke
 
 Pilot on the organism (the go/no-go run)::
 
     PYTHONPATH=src python scripts/run_phase3.py --stage all \
-        --limit 20 --regime woodlabs --out outputs/phase3_pilot
+        --limit 20 --out outputs/phase3_pilot
 
 Score without regenerating::
 
@@ -49,6 +49,7 @@ import platform
 import subprocess
 import sys
 import time
+import traceback
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -75,7 +76,7 @@ def banner(text: str) -> None:
 # split selection
 # ---------------------------------------------------------------------------
 
-def behavioral_items(cfg_questions: Path, regimes, hint: bool, seed: int,
+def behavioral_items(questions_path: Path, regimes, hint: bool, seed: int,
                      template_fractions, question_fractions, split: str):
     """Build every pair, then keep only the requested split.
 
@@ -83,7 +84,7 @@ def behavioral_items(cfg_questions: Path, regimes, hint: bool, seed: int,
     and 51 questions that were not used to estimate r_hat. Measuring on the
     extract split instead would be grading the model on its own practice test.
     """
-    questions = load_questions(str(cfg_questions))
+    questions = load_questions(str(questions_path))
     items = build_pairs(
         questions,
         regimes=tuple(regimes),
@@ -95,17 +96,11 @@ def behavioral_items(cfg_questions: Path, regimes, hint: bool, seed: int,
         template_fractions=tuple(template_fractions),
         question_fractions=tuple(question_fractions),
     )
-    keep = _select(items, splits, split)
-    return items, splits, keep
+    return items, splits, _select(items, splits, split)
 
 
 def _select(items, splits, split):
-    """Filter items down to one split.
-
-    dataset.py exposes a ``select`` helper; its exact signature is the one
-    thing here inferred rather than read, so fall back to filtering by hand if
-    it does not match. Either path produces the same rows.
-    """
+    """Filter items down to one split."""
     try:
         from evalaware.dataset import select  # type: ignore
         return list(select(items, splits, split))
@@ -148,6 +143,19 @@ def load_done(path: Path) -> set[str]:
     return done
 
 
+def input_device(model):
+    """Where to put input tensors.
+
+    With device_map='auto' the model is sharded across devices and
+    ``model.device`` can be misleading; the embedding layer is where inputs
+    actually enter the network.
+    """
+    try:
+        return model.get_input_embeddings().weight.device
+    except Exception:
+        return getattr(model, "device", "cpu")
+
+
 def build_model(args):
     """Load the organism, optionally with Phase 2's weight edit applied."""
     import torch
@@ -168,39 +176,69 @@ def build_model(args):
                              convention=spec.layer_convention)
         model, tokenizer, report = load_edited_model(spec, plan)
         log.info("edited model ready: %s", report)
+        model.eval()
         return model, tokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(args.model)
-    model = AutoModelForCausalLM.from_pretrained(
-        args.model, torch_dtype=dtype,
-        device_map=(None if args.device == "cpu" else "auto"),
-        trust_remote_code=True,
-    )
+    # Tokenizer comes from the base repo -- adapter repos usually ship none.
+    tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
+
+    load_kwargs = dict(dtype=dtype, trust_remote_code=True, low_cpu_mem_usage=True)
+    if args.device == "cpu":
+        load_kwargs["device_map"] = None
+    else:
+        load_kwargs["device_map"] = "auto"
+        # 49B in bf16 is ~98GB and will not fit an 80GB card; accelerate spills
+        # the remainder to CPU, and to disk if CPU RAM also runs short.
+        load_kwargs["offload_folder"] = args.offload_folder
+
+    log.info("loading %s (downloads ~100GB the first time)", args.model)
+    model = AutoModelForCausalLM.from_pretrained(args.model, **load_kwargs)
     if args.device == "cpu":
         model = model.to("cpu")
 
     if not args.no_adapter:
         from peft import PeftModel
-        before = None
+
+        # Snapshot one adapter-targeted matrix so the merge can be proven.
+        probe_name, before = None, None
         for n, m in model.named_modules():
-            if n.endswith(".o_proj"):
-                before = m.weight.detach().clone()
+            if n.endswith(".o_proj") and hasattr(m, "weight"):
+                probe_name = n
+                before = m.weight.detach().to("cpu", torch.float32).clone()
                 break
+
+        log.info("attaching adapter %s", args.adapter)
         model = PeftModel.from_pretrained(model, args.adapter)
-        # Merge before anything else. An attached adapter re-applies BA on top
-        # of the weights, which silently undoes a Phase 2 edit -- and the model
-        # still loads and generates fluently, so nothing warns you.
-        model = model.merge_and_unload()
+        try:
+            # Merge first. An attached adapter re-applies BA on top of the
+            # weights, which silently undoes a Phase 2 edit -- and the model
+            # still loads and generates fluently, so nothing warns you.
+            model = model.merge_and_unload()
+        except Exception as exc:
+            raise ValidationError(
+                f"merge_and_unload() failed: {exc}\n"
+                "This usually means weights are offloaded to CPU or disk and "
+                "PEFT cannot merge them in place. Try a machine with more VRAM, "
+                "or --device cpu (slow, but merges cleanly)."
+            ) from exc
+
         if before is not None:
+            after = None
             for n, m in model.named_modules():
-                if n.endswith(".o_proj"):
-                    if torch.allclose(before.to(m.weight.dtype), m.weight):
-                        raise ValidationError(
-                            "merge_and_unload() was a no-op: o_proj is unchanged. "
-                            "The adapter did not attach."
-                        )
+                if n == probe_name and hasattr(m, "weight"):
+                    after = m.weight.detach().to("cpu", torch.float32)
                     break
-        log.info("adapter %s merged and verified", args.adapter)
+            if after is None:
+                log.warning("could not re-find %s to verify the merge", probe_name)
+            elif torch.allclose(before, after):
+                raise ValidationError(
+                    f"merge_and_unload() was a no-op: {probe_name} is unchanged. "
+                    "The adapter did not attach, so this is the BASE model rather "
+                    "than the organism, and every number would be meaningless."
+                )
+            else:
+                log.info("merge verified on %s (delta norm %.4g)",
+                         probe_name, (after - before).norm().item())
 
     model.eval()
     return model, tokenizer
@@ -213,9 +251,14 @@ def generate(args, keep) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     jsonl = out_dir / "generations.jsonl"
 
-    model_tag = ("edited" if args.edited else "organism") if not args.no_adapter else "base"
     if args.tag:
         model_tag = args.tag
+    elif args.edited:
+        model_tag = "edited"
+    elif args.no_adapter:
+        model_tag = "base"
+    else:
+        model_tag = "organism"
 
     done = load_done(jsonl)
     log.info("%d responses already on disk -- skipping those", len(done))
@@ -232,16 +275,17 @@ def generate(args, keep) -> Path:
         log.info("nothing left to generate")
         return jsonl
 
-    log.info("generating %d responses (%d pairs x 2 framings, minus done)",
-             len(work), len(keep))
+    log.info("generating %d responses as model_tag=%r", len(work), model_tag)
 
     model, tokenizer = build_model(args)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"      # required for batched generation
+    eos_id = tokenizer.eos_token_id
+    dev = input_device(model)
+    log.info("inputs -> %s", dev)
 
-    t0 = time.time()
-    n_trunc = 0
+    t0, n_done, n_trunc, n_failed = time.time(), 0, 0, 0
     with jsonl.open("a") as fh:
         for start in range(0, len(work), args.batch_size):
             batch = work[start:start + args.batch_size]
@@ -253,21 +297,42 @@ def generate(args, keep) -> Path:
                 )
                 for _, _, _, spec in batch
             ]
-            enc = tokenizer(texts, return_tensors="pt", padding=True).to(model.device)
-            with torch.no_grad():
-                out = model.generate(
-                    **enc,
-                    max_new_tokens=args.max_new_tokens,
-                    do_sample=(args.temperature > 0),
-                    temperature=(args.temperature or None),
-                    pad_token_id=tokenizer.pad_token_id,
-                )
+            # add_special_tokens=False: the chat template already emits BOS, and
+            # letting the tokenizer prepend a second one puts the model
+            # off-distribution for every single prompt.
+            enc = tokenizer(texts, return_tensors="pt", padding=True,
+                            add_special_tokens=False).to(dev)
+
+            try:
+                with torch.no_grad():
+                    out = model.generate(
+                        **enc,
+                        max_new_tokens=args.max_new_tokens,
+                        do_sample=(args.temperature > 0),
+                        temperature=(args.temperature if args.temperature > 0 else None),
+                        pad_token_id=tokenizer.pad_token_id,
+                    )
+            except Exception:
+                # One bad batch must not kill a multi-hour run. Nothing was
+                # written, so a re-run picks these up.
+                n_failed += len(batch)
+                log.error("batch at %d failed, continuing:\n%s",
+                          start, traceback.format_exc())
+                continue
+
             gen = out[:, enc["input_ids"].shape[1]:]
 
             for (key, it, framing, spec), ids in zip(batch, gen):
-                text = tokenizer.decode(ids, skip_special_tokens=True)
-                truncated = int(ids.shape[0]) >= args.max_new_tokens
+                # Every row in a batch is padded to the longest, so ids.shape is
+                # identical across the batch and cannot measure length. Real
+                # length runs to the first EOS; no EOS means it hit the cap.
+                hit = (ids == eos_id).nonzero()
+                if len(hit):
+                    n_new, truncated = int(hit[0]) + 1, False
+                else:
+                    n_new, truncated = int(ids.shape[0]), True
                 n_trunc += truncated
+                text = tokenizer.decode(ids[:n_new], skip_special_tokens=True)
                 fh.write(json.dumps({
                     "key": key,
                     "model_tag": model_tag,
@@ -276,24 +341,25 @@ def generate(args, keep) -> Path:
                     "regime": it.regime,
                     "framing": framing,
                     "template_family": it.template_family,
-                    "n_new_tokens": int(ids.shape[0]),
+                    "n_new_tokens": n_new,
                     "truncated": bool(truncated),
                     "response": text,
                 }) + "\n")
             fh.flush()
 
-            n = start + len(batch)
-            rate = (time.time() - t0) / n
-            log.info("  %d/%d  (%.1fs/response, ~%.0f min left)",
-                     n, len(work), rate, rate * (len(work) - n) / 60)
+            n_done += len(batch)
+            rate = (time.time() - t0) / n_done
+            log.info("  %d/%d  (%.1fs/response, ~%.0f min left, %d truncated)",
+                     n_done, len(work), rate, rate * (len(work) - n_done) / 60, n_trunc)
 
+    if n_failed:
+        log.error("%d responses failed and were skipped -- re-run to retry them", n_failed)
     if n_trunc:
-        pct = 100 * n_trunc / len(work)
         log.warning(
-            "%d/%d responses (%.0f%%) hit max_new_tokens=%d. A reasoning model "
-            "needs room for <think> AND the answer -- truncated generations "
-            "score as unparseable and are dropped. Raise --max-new-tokens.",
-            n_trunc, len(work), pct, args.max_new_tokens,
+            "%d/%d responses (%.0f%%) hit max_new_tokens=%d without finishing. "
+            "A reasoning model needs room for <think> AND the answer; truncated "
+            "generations have no usable code and get dropped. Raise --max-new-tokens.",
+            n_trunc, n_done, 100 * n_trunc / max(n_done, 1), args.max_new_tokens,
         )
     return jsonl
 
@@ -315,7 +381,7 @@ def score(args) -> dict:
     for r in rows:
         by_pair.setdefault((r["model_tag"], r["regime"], r["pair_key"]), {})[r["framing"]] = r
 
-    results = {}
+    results: dict = {}
     for model_tag in sorted({r["model_tag"] for r in rows}):
         for regime in sorted({r["regime"] for r in rows}):
             ev, dp, qids = [], [], []
@@ -329,7 +395,11 @@ def score(args) -> dict:
                 qids.append(sides["eval"]["question_id"])
             if not ev:
                 continue
-            r = measure_baseline_rates(ev, dp, qids, regime=regime, n_boot=args.n_boot)
+            try:
+                r = measure_baseline_rates(ev, dp, qids, regime=regime, n_boot=args.n_boot)
+            except ValidationError as exc:
+                log.error("%s/%s could not be scored: %s", model_tag, regime, exc)
+                continue
             results[f"{model_tag}/{regime}"] = r.summary()
 
             banner(f"{model_tag}  regime={regime}")
@@ -348,21 +418,26 @@ def score(args) -> dict:
                     "disappears without them."
                 )
 
-    # unparseable rate per condition -- if the edit degrades syntax, silently
-    # dropping those rows would hide exactly the damage we are looking for.
-    parse_stats = {}
+    # Unparseable and truncation rate per condition. If an edit degrades syntax,
+    # silently dropping those rows would hide exactly the damage the capability
+    # criterion is meant to catch.
+    parse_stats: dict = {}
     for r in rows:
         cell = f"{r['model_tag']}/{r['regime']}/{r['framing']}"
-        st = parse_stats.setdefault(cell, {"n": 0, "unparseable": 0, "truncated": 0})
+        st = parse_stats.setdefault(
+            cell, {"n": 0, "unparseable": 0, "truncated": 0, "mean_tokens": 0.0})
         st["n"] += 1
         st["unparseable"] += int(score_type_hints(r["response"]).has_type_hints is None)
         st["truncated"] += int(r.get("truncated", False))
+        st["mean_tokens"] += r.get("n_new_tokens", 0)
+    for st in parse_stats.values():
+        st["mean_tokens"] = round(st["mean_tokens"] / max(st["n"], 1), 1)
     results["_parse_stats"] = parse_stats
 
     banner("parse / truncation by condition")
     for cell, st in sorted(parse_stats.items()):
-        log.info("  %-34s n=%3d  unparseable=%3d  truncated=%3d",
-                 cell, st["n"], st["unparseable"], st["truncated"])
+        log.info("  %-30s n=%3d  unparseable=%3d  truncated=%3d  mean_tokens=%.0f",
+                 cell, st["n"], st["unparseable"], st["truncated"], st["mean_tokens"])
 
     path = out_dir / "baseline_rates.json"
     path.write_text(json.dumps(results, indent=2))
@@ -395,7 +470,7 @@ def main() -> int:
     p.add_argument("--out", default="outputs/phase3")
 
     p.add_argument("--questions", default=str(REPO / "data" / "questions.jsonl"))
-    p.add_argument("--split", default="behavioral", help="never change this without a reason")
+    p.add_argument("--split", default="behavioral", help="do not change without a reason")
     p.add_argument("--regime", default="both", choices=["explicit", "woodlabs", "both"])
     p.add_argument("--limit", type=int, default=None,
                    help="sample N questions from the split (pilot runs)")
@@ -412,6 +487,7 @@ def main() -> int:
 
     p.add_argument("--dtype", default="bfloat16")
     p.add_argument("--device", default="auto")
+    p.add_argument("--offload-folder", default="/content/offload")
     p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--max-new-tokens", type=int, default=2048,
                    help="reasoning model: needs room for <think> plus the answer")
@@ -419,18 +495,31 @@ def main() -> int:
     p.add_argument("--n-boot", type=int, default=2000)
     args = p.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s %(message)s",
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s  %(levelname)-7s %(message)s",
                         datefmt="%H:%M:%S")
+
+    if args.edited and args.no_adapter:
+        raise ValidationError("--edited and --no-adapter are contradictory")
+
+    qpath = Path(args.questions)
+    if not qpath.exists():
+        raise ValidationError(
+            f"questions file not found: {qpath}\n"
+            f"Run from the phase1_extraction directory, or pass --questions."
+        )
 
     regimes = ("explicit", "woodlabs") if args.regime == "both" else (args.regime,)
 
     if args.stage in ("generate", "all") or args.dry_run:
         banner("STAGE 1  build prompts and select the behavioral split")
         items, splits, keep = behavioral_items(
-            Path(args.questions), regimes, not args.no_hint, args.seed,
+            qpath, regimes, not args.no_hint, args.seed,
             (0.6, 0.2, 0.2), (0.6, 0.2, 0.2), args.split,
         )
         log.info("%d pairs in split %r", len(keep), args.split)
+        if not keep:
+            raise ValidationError(f"split {args.split!r} is empty -- nothing to measure")
 
         if args.limit:
             qids = sorted({it.question_id for it in keep})[:args.limit]
@@ -441,7 +530,7 @@ def main() -> int:
         log.info("  template families: %s", ", ".join(fams))
         log.info("  questions: %d", len({it.question_id for it in keep}))
         log.info("  regimes: %s", ", ".join(sorted({it.regime for it in keep})))
-        log.info("  -> %d generations at ~%d max tokens each",
+        log.info("  -> %d generations at up to %d tokens each",
                  2 * len(keep), args.max_new_tokens)
 
         if args.dry_run:
@@ -454,8 +543,7 @@ def main() -> int:
         Path(args.out).mkdir(parents=True, exist_ok=True)
         (Path(args.out) / "manifest.json").write_text(json.dumps(
             {"args": vars(args), "provenance": provenance(),
-             "n_pairs": len(keep),
-             "template_families": fams}, indent=2))
+             "n_pairs": len(keep), "template_families": fams}, indent=2))
 
         banner("STAGE 2  generate")
         generate(args, keep)
