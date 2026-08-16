@@ -205,6 +205,38 @@ def build_model(args):
         log.info("%s model ready: %s",
                  "control" if args.control else "edited", report)
         model.eval()
+
+        # Phase 2's loader merges and orthogonalizes on CPU (that is why it
+        # wants ~180GB of system RAM) and leaves the model there. Generating a
+        # 49B on CPU is ~50-100x slower -- days, not hours -- so dispatch it
+        # onto the GPUs before returning.
+        if args.device != "cpu":
+            import torch
+            if torch.cuda.is_available():
+                n_gpu = torch.cuda.device_count()
+                first = next(model.parameters()).device
+                if first.type != "cuda":
+                    log.info("model is on %s; dispatching across %d GPU(s)",
+                             first, n_gpu)
+                    from accelerate import dispatch_model, infer_auto_device_map
+                    from accelerate.utils import get_balanced_memory
+
+                    no_split = getattr(model, "_no_split_modules", None) or []
+                    max_mem = get_balanced_memory(
+                        model, dtype=dtype, no_split_module_classes=no_split,
+                        low_zero=False,
+                    )
+                    device_map = infer_auto_device_map(
+                        model, max_memory=max_mem, dtype=dtype,
+                        no_split_module_classes=no_split,
+                    )
+                    model = dispatch_model(model, device_map=device_map)
+                    log.info("dispatched; inputs will enter on %s",
+                             next(model.parameters()).device)
+            else:
+                log.warning("no CUDA visible -- generation will run on CPU and "
+                            "will be far too slow for a full run")
+
         return model, tokenizer
 
     # Tokenizer comes from the base repo -- adapter repos usually ship none.
