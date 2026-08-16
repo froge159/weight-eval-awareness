@@ -161,6 +161,16 @@ def build_model(args):
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
+    import transformers
+    if not transformers.__version__.startswith("4.48"):
+        log.warning(
+            "transformers %s detected; Phase 2 ran on 4.48.3 and the Nemotron "
+            "trust_remote_code file needs it (newer versions dropped "
+            "NEED_SETUP_CACHE_CLASSES_MAPPING). Install with: "
+            "pip install transformers==4.48.3",
+            transformers.__version__,
+        )
+
     dtype = getattr(torch, args.dtype)
 
     if args.edited:
@@ -182,7 +192,11 @@ def build_model(args):
     # Tokenizer comes from the base repo -- adapter repos usually ship none.
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
 
-    load_kwargs = dict(dtype=dtype, trust_remote_code=True, low_cpu_mem_usage=True)
+    # transformers 4.48.3 (the version Phase 2 used, pinned because the model's
+    # trust_remote_code file needs it) spells this torch_dtype, not dtype.
+    # Passing the wrong name is silently ignored and loads fp32: ~196GB.
+    load_kwargs = dict(torch_dtype=dtype, trust_remote_code=True,
+                       low_cpu_mem_usage=True)
     if args.device == "cpu":
         load_kwargs["device_map"] = None
     else:
