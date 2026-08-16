@@ -150,10 +150,14 @@ def input_device(model):
     ``model.device`` can be misleading; the embedding layer is where inputs
     actually enter the network.
     """
-    try:
-        return model.get_input_embeddings().weight.device
-    except Exception:
-        return getattr(model, "device", "cpu")
+    for obj in (model, getattr(model, "base_model", None)):
+        if obj is None:
+            continue
+        try:
+            return obj.get_input_embeddings().weight.device
+        except Exception:
+            continue
+    return getattr(model, "device", "cpu")
 
 
 def build_model(args):
@@ -204,6 +208,10 @@ def build_model(args):
         # 49B in bf16 is ~98GB and will not fit an 80GB card; accelerate spills
         # the remainder to CPU, and to disk if CPU RAM also runs short.
         load_kwargs["offload_folder"] = args.offload_folder
+        if args.gpu_mem:
+            # accelerate otherwise fills the card to 90% and leaves nothing for
+            # generation buffers.
+            load_kwargs["max_memory"] = {0: args.gpu_mem, "cpu": args.cpu_mem}
 
     log.info("loading %s (downloads ~100GB the first time)", args.model)
     model = AutoModelForCausalLM.from_pretrained(args.model, **load_kwargs)
@@ -213,46 +221,39 @@ def build_model(args):
     if not args.no_adapter:
         from peft import PeftModel
 
-        # Snapshot one adapter-targeted matrix so the merge can be proven.
-        probe_name, before = None, None
-        for n, m in model.named_modules():
-            if n.endswith(".o_proj") and hasattr(m, "weight"):
-                probe_name = n
-                before = m.weight.detach().to("cpu", torch.float32).clone()
-                break
-
         log.info("attaching adapter %s", args.adapter)
         model = PeftModel.from_pretrained(model, args.adapter)
-        try:
-            # Merge first. An attached adapter re-applies BA on top of the
-            # weights, which silently undoes a Phase 2 edit -- and the model
-            # still loads and generates fluently, so nothing warns you.
-            model = model.merge_and_unload()
-        except Exception as exc:
-            raise ValidationError(
-                f"merge_and_unload() failed: {exc}\n"
-                "This usually means weights are offloaded to CPU or disk and "
-                "PEFT cannot merge them in place. Try a machine with more VRAM, "
-                "or --device cpu (slow, but merges cleanly)."
-            ) from exc
 
-        if before is not None:
-            after = None
-            for n, m in model.named_modules():
-                if n == probe_name and hasattr(m, "weight"):
-                    after = m.weight.detach().to("cpu", torch.float32)
-                    break
-            if after is None:
-                log.warning("could not re-find %s to verify the merge", probe_name)
-            elif torch.allclose(before, after):
+        n_lora = sum(1 for n, _ in model.named_modules() if "lora_" in n)
+        if n_lora == 0:
+            raise ValidationError(
+                "no LoRA modules found after PeftModel.from_pretrained -- the "
+                "adapter did not attach, so this is the BASE model rather than "
+                "the organism and every number would be meaningless."
+            )
+        log.info("adapter attached (%d LoRA submodules)", n_lora)
+
+        if args.merge:
+            # Merging is REQUIRED before a Phase 2 weight edit: an attached
+            # adapter re-applies BA on top of the orthogonalized weights and
+            # silently undoes the ablation. For an unedited baseline it is only
+            # a speed optimisation -- W x + BA x is the same function either
+            # way -- and it needs GPU headroom the 49B does not leave, so it is
+            # off by default.
+            try:
+                model = model.merge_and_unload()
+                log.info("adapter merged into the weights")
+            except Exception as exc:
                 raise ValidationError(
-                    f"merge_and_unload() was a no-op: {probe_name} is unchanged. "
-                    "The adapter did not attach, so this is the BASE model rather "
-                    "than the organism, and every number would be meaningless."
-                )
-            else:
-                log.info("merge verified on %s (delta norm %.4g)",
-                         probe_name, (after - before).norm().item())
+                    f"merge_and_unload() failed: {exc}\n"
+                    "The 49B does not fit an 80GB card, so part of it is offloaded "
+                    "and PEFT cannot merge in place. Drop --merge (the adapter "
+                    "then stays attached, which is equivalent for inference), or "
+                    "lower --gpu-mem to leave more headroom."
+                ) from exc
+        else:
+            log.info("adapter left unmerged -- equivalent for inference, and it "
+                     "avoids the OOM that merging causes on an offloaded model")
 
     model.eval()
     return model, tokenizer
@@ -316,11 +317,16 @@ def generate(args, keep) -> Path:
             # off-distribution for every single prompt.
             enc = tokenizer(texts, return_tensors="pt", padding=True,
                             add_special_tokens=False).to(dev)
+            # Only pass what generate() accepts. Some tokenizers also emit
+            # token_type_ids, which causes a hard ValueError on models that do
+            # not take it.
+            gen_inputs = {k: v for k, v in enc.items()
+                          if k in ("input_ids", "attention_mask")}
 
             try:
                 with torch.no_grad():
                     out = model.generate(
-                        **enc,
+                        **gen_inputs,
                         max_new_tokens=args.max_new_tokens,
                         do_sample=(args.temperature > 0),
                         temperature=(args.temperature if args.temperature > 0 else None),
@@ -502,6 +508,13 @@ def main() -> int:
     p.add_argument("--dtype", default="bfloat16")
     p.add_argument("--device", default="auto")
     p.add_argument("--offload-folder", default="/content/offload")
+    p.add_argument("--merge", action="store_true",
+                   help="merge the LoRA into the weights; required before a "
+                        "Phase 2 edit, OOMs on an offloaded 49B, and "
+                        "unnecessary for an unedited baseline")
+    p.add_argument("--gpu-mem", default="70GiB",
+                   help="cap GPU use so generation has buffer room; '' to disable")
+    p.add_argument("--cpu-mem", default="120GiB")
     p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--max-new-tokens", type=int, default=2048,
                    help="reasoning model: needs room for <think> plus the answer")
