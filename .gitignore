@@ -58,3 +58,4 @@ phase1_extraction/outputs_smoke/
 .ipynb_checkpoints/
 .DS_Store
 *.npz.tmp
+phase1_extraction/outputs/
