@@ -475,11 +475,14 @@ days, not hours. `run_phase3.py` now detects this and dispatches across the
 available GPUs before generating. If you write new code against
 `load_merged_model`, you must do the same.
 
-**`activations.capture()` does not pass `trust_remote_code=True`.** Nemotron
-requires it. Step 3b needed two one-line edits to `src/evalaware/activations.py`
-(lines 220 and 228) to run. **These edits are local to the pod and were not
-committed** — anyone re-running Step 3b will hit the same error. Worth fixing
-properly in the repo.
+**`activations.capture()` did not pass `trust_remote_code=True`.** Nemotron
+requires it, and without it the model load fails with a ValueError. Fixed and
+committed: `src/evalaware/activations.py` now passes it for both the tokenizer
+and the model. Note this also affects any future Phase 1 re-run (e.g. the
+`completion_mean` capture in §14), not just Step 3b.
+
+**`run_capability.py` needed a `--merge` flag** to satisfy the shared
+`build_model()` in `run_phase3.py`. Also fixed and committed.
 
 ---
 
@@ -539,15 +542,15 @@ have been.
 | `outputs/timing/` | 48-response pilot at 3072 tokens (superseded) |
 | `*/manifest.json` | args, git commit, package versions, platform |
 
-> **⚠ These live only on the RunPod network volume and are NOT in git.** The
-> push from the pod failed on credentials and was not retried. If the volume is
-> deleted, all 1600 generations are gone and reproducing them costs ~9 GPU-hours
-> and ~$25. Pull them down and commit them before touching the volume.
+**All of the above are committed to `phase-1-branch`** under
+`phase1_extraction/outputs/`, including the raw generations (~5.5 MB total, 1600
+responses). Nothing depends on the RunPod volume any more, and the volume can be
+deleted without loss.
 
-The `baseline_rates.json` / `capability.json` / `refusal_check.json` files are
-small and should go in the repo. The `generations.jsonl` files are larger
-(~1600 responses total) — if they are too big for git, they belong in shared
-storage with a pointer recorded here.
+Every `manifest.json` records the exact args, git commit, package versions and
+platform for its run, so any number in this document can be traced back to the
+invocation that produced it. Re-scoring is free and needs no GPU:
+`python scripts/run_phase3.py --stage score --out outputs/<run>`.
 
 ---
 
