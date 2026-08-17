@@ -217,7 +217,7 @@ def capture(
     if not todo:
         return {"captured": 0, "cached": len(specs), "pooling": config.pooling}
 
-    tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision)
+    tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
@@ -225,6 +225,7 @@ def capture(
         revision=config.revision,
         torch_dtype=_resolve_dtype(config.dtype),
         device_map=config.device_map,
+        trust_remote_code=True,
         output_hidden_states=True,
     )
     model.eval()

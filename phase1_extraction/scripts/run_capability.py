@@ -196,6 +196,7 @@ def main() -> int:
     p.add_argument("--edited", action="store_true")
     p.add_argument("--control", action="store_true")
     p.add_argument("--control-seed", type=int, default=0)
+    p.add_argument("--merge", action="store_true")
     p.add_argument("--band", type=int, nargs=2, default=[36, 76])
     p.add_argument("--tag", default=None)
     p.add_argument("--dtype", default="bfloat16")
