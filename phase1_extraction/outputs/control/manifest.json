@@ -1,0 +1,51 @@
+{
+  "args": {
+    "stage": "all",
+    "dry_run": false,
+    "out": "outputs/control",
+    "questions": "/workspace/weight-eval-awareness/phase1_extraction/data/questions.jsonl",
+    "split": "behavioral",
+    "regime": "both",
+    "limit": 20,
+    "seed": 0,
+    "no_hint": false,
+    "model": "nvidia/Llama-3_3-Nemotron-Super-49B-v1",
+    "adapter": "timhua/wood_v2_sftr4_filt",
+    "no_adapter": false,
+    "edited": false,
+    "control": true,
+    "control_seed": 0,
+    "band": [
+      36,
+      76
+    ],
+    "tag": null,
+    "dtype": "bfloat16",
+    "device": "auto",
+    "offload_folder": "/content/offload",
+    "merge": false,
+    "gpu_mem": "",
+    "cpu_mem": "120GiB",
+    "batch_size": 8,
+    "max_new_tokens": 4096,
+    "temperature": 0.0,
+    "n_boot": 2000
+  },
+  "provenance": {
+    "commit": "724f71bbc39e7782a97bfcd2f20df1c21c39b9aa",
+    "dirty": true,
+    "python": "3.12.3",
+    "platform": "Linux-6.14.0-24-generic-x86_64-with-glibc2.39"
+  },
+  "n_pairs": 160,
+  "template_families": [
+    "explicit|E2/UE2|D2/UD2",
+    "explicit|E3/UE2|D3/UD2",
+    "explicit|E3/UE3|D3/UD3",
+    "explicit|E4/UE5|D4/UD5",
+    "explicit|E5/UE3|D5/UD3",
+    "woodlabs|W1/UN1|D1/UN1",
+    "woodlabs|W1/UN2|D1/UN2",
+    "woodlabs|W4/UN3|D4/UN3"
+  ]
+}

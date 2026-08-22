@@ -1,0 +1,57 @@
+{
+  "layers": {
+    "40": {
+      "cos_awareness_refusal": 0.035959,
+      "abs_cos": 0.035959,
+      "ratio_to_p99": 1.2429,
+      "random_pair_baseline": {
+        "dim": 8192.0,
+        "n_samples": 10000.0,
+        "mean": -0.00022048405353569325,
+        "sd": 0.01104427230401226,
+        "abs_p95": 0.02186689648692828,
+        "abs_p99": 0.028932292908349415,
+        "abs_max": 0.04148705561496868
+      },
+      "verdict": "weakly above chance -- report, but unlikely to be the same mechanism",
+      "n_pairs": 64
+    },
+    "56": {
+      "cos_awareness_refusal": 0.024996,
+      "abs_cos": 0.024996,
+      "ratio_to_p99": 0.8639,
+      "random_pair_baseline": {
+        "dim": 8192.0,
+        "n_samples": 10000.0,
+        "mean": -0.00022048405353569325,
+        "sd": 0.01104427230401226,
+        "abs_p95": 0.02186689648692828,
+        "abs_p99": 0.028932292908349415,
+        "abs_max": 0.04148705561496868
+      },
+      "verdict": "indistinguishable from random (directions are unrelated)",
+      "n_pairs": 64
+    },
+    "68": {
+      "cos_awareness_refusal": 0.018107,
+      "abs_cos": 0.018107,
+      "ratio_to_p99": 0.6258,
+      "random_pair_baseline": {
+        "dim": 8192.0,
+        "n_samples": 10000.0,
+        "mean": -0.00022048405353569325,
+        "sd": 0.01104427230401226,
+        "abs_p95": 0.02186689648692828,
+        "abs_p99": 0.028932292908349415,
+        "abs_max": 0.04148705561496868
+      },
+      "verdict": "indistinguishable from random (directions are unrelated)",
+      "n_pairs": 64
+    }
+  },
+  "n_pairs": 64,
+  "with_situational_awareness_hint": false,
+  "model": "nvidia/Llama-3_3-Nemotron-Super-49B-v1",
+  "pooling": "last_prompt_token",
+  "note": "Post-hoc: refusal.py specifies this check as a gate before Phase 2 surgery, which has already been run. A bad result does not invalidate the edit but changes its interpretation."
+}

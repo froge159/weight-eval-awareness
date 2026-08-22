@@ -1,0 +1,134 @@
+{
+  "summary": {
+    "model_tag": "edited",
+    "n_problems": 20,
+    "n_passed": 17,
+    "pass@1": 0.85,
+    "n_truncated": 0,
+    "benchmark": "HumanEval",
+    "temperature": 0.0,
+    "max_new_tokens": 2048
+  },
+  "per_problem": [
+    {
+      "task_id": "HumanEval/0",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/1",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/2",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/3",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/4",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/5",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/6",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/7",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/8",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/9",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/10",
+      "passed": false,
+      "error": "AssertionError: ",
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/11",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/12",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/13",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/14",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/15",
+      "passed": false,
+      "error": "AssertionError: ",
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/16",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/17",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/18",
+      "passed": true,
+      "error": null,
+      "truncated": false
+    },
+    {
+      "task_id": "HumanEval/19",
+      "passed": false,
+      "error": "AssertionError: ",
+      "truncated": false
+    }
+  ]
+}
