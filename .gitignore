@@ -50,12 +50,12 @@ data/**/*.tar
 data/**/*.tgz
 data/**/*.7z
 
-# Phase 1
-phase1_extraction/cache/
-phase1_extraction/outputs_smoke/
+# Phase 1 (src/extraction)
+src/extraction/cache/
+src/extraction/outputs_smoke/
 **/__pycache__/
 *.py[cod]
 .ipynb_checkpoints/
 .DS_Store
 *.npz.tmp
-phase1_extraction/outputs/
+src/extraction/outputs/

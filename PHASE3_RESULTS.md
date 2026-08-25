@@ -414,7 +414,7 @@ type-hint habit and call it awareness removal), but it should be stated.
 
 ```bash
 git clone https://github.com/froge159/weight-eval-awareness.git
-cd weight-eval-awareness && git checkout phase-1-branch && cd phase1_extraction
+cd weight-eval-awareness/src/extraction
 pip install -r requirements.txt
 pip install "transformers==4.48.3" "peft==0.14.0" "accelerate>=1.3,<2"
 export HF_HOME=/path/with/200GB
@@ -542,10 +542,9 @@ have been.
 | `outputs/timing/` | 48-response pilot at 3072 tokens (superseded) |
 | `*/manifest.json` | args, git commit, package versions, platform |
 
-**All of the above are committed to `phase-1-branch`** under
-`phase1_extraction/outputs/`, including the raw generations (~5.5 MB total, 1600
-responses). Nothing depends on the RunPod volume any more, and the volume can be
-deleted without loss.
+**All of the above are committed** under `src/extraction/outputs/`, including
+the raw generations (~5.5 MB total, 1600 responses). Nothing depends on the
+RunPod volume any more, and the volume can be deleted without loss.
 
 Every `manifest.json` records the exact args, git commit, package versions and
 platform for its run, so any number in this document can be traced back to the

@@ -275,10 +275,42 @@ def test_swapped_arguments_are_caught(items, direction):
 
 
 def test_identical_activations_rejected(items):
+    # layer > 0: layer 0 has its own message, since zeros are expected there.
     h = np.random.default_rng(0).standard_normal((len(items), DIM))
-    with pytest.raises(ValidationError, match="every row of X is zero"):
+    with pytest.raises(AssertionError, match="rows are exactly zero"):
         build_contrastive_matrix(
-            h, h.copy(), items, layer=0, pooling="last_prompt_token",
+            h, h.copy(), items, layer=40, pooling="last_prompt_token",
+            split="extract", model_id="test", token_offset=-2,
+        )
+
+
+def test_all_zero_error_reports_counts_and_regimes(items):
+    """The message must state how many rows are zero, and where.
+
+    An earlier version said 'every row of X is zero' whenever the *median* row
+    was zero -- which is true as soon as half are. Half vs all point at
+    different causes, so the message has to distinguish them.
+    """
+    h = np.random.default_rng(0).standard_normal((len(items), DIM))
+    with pytest.raises(AssertionError) as exc:
+        build_contrastive_matrix(
+            h, h.copy(), items, layer=40, pooling="last_prompt_token",
+            split="extract", model_id="test", token_offset=-2,
+        )
+    msg = str(exc.value)
+    assert f"{len(items)} of {len(items)} rows are exactly zero" in msg
+    assert "per regime" in msg
+    assert "diagnose_zero_rows" in msg
+
+
+def test_partial_zero_rows_reported_separately(items, direction):
+    """A minority of zero rows gets a different, more specific message."""
+    h_eval, h_deploy = planted_activations(items, direction)
+    h_eval[1] = h_deploy[1]
+    h_eval[4] = h_deploy[4]
+    with pytest.raises(ValidationError, match="though the majority are not"):
+        build_contrastive_matrix(
+            h_eval, h_deploy, items, layer=0, pooling="last_prompt_token",
             split="extract", model_id="test", token_offset=-2,
         )
 
@@ -395,3 +427,35 @@ def test_random_pair_baseline_scales_with_dim():
     assert large["abs_p99"] < small["abs_p99"]
     assert abs(small["mean"]) < 0.05
     assert 0.0 < large["abs_p99"] < 0.1
+
+
+def test_layer_zero_all_zeros_gets_its_own_explanation(items):
+    """Layer 0 is zero by construction, not by malfunction.
+
+    Embeddings at a fixed token position ignore context, and matched framings
+    end with identical chat-template tokens. The message must say so instead of
+    sending someone to debug the capture loop.
+    """
+    h = np.random.default_rng(0).standard_normal((len(items), DIM))
+    with pytest.raises(AssertionError) as exc:
+        build_contrastive_matrix(
+            h, h.copy(), items, layer=0, pooling="last_prompt_token",
+            split="extract", model_id="test", token_offset=-2,
+        )
+    msg = str(exc.value)
+    assert "LAYER 0" in msg
+    assert "expected and not a bug" in msg
+    assert "l >= 1" in msg
+
+
+def test_nonzero_layer_all_zeros_still_reports_a_problem(items):
+    """At layer > 0 an all-zero X is a genuine fault and must read as one."""
+    h = np.random.default_rng(0).standard_normal((len(items), DIM))
+    with pytest.raises(AssertionError) as exc:
+        build_contrastive_matrix(
+            h, h.copy(), items, layer=40, pooling="last_prompt_token",
+            split="extract", model_id="test", token_offset=-2,
+        )
+    msg = str(exc.value)
+    assert "rows are exactly zero" in msg
+    assert "LAYER 0" not in msg

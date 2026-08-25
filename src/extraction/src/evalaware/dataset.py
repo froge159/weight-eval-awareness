@@ -271,7 +271,33 @@ def make_splits(
             check(len(vals) > 0, f"make_splits[{salt}]: split {name!r} is empty")
         return out
 
-    fam_splits = _partition([it.template_family for it in items], template_fractions, "family")
+    # Stratify template families BY REGIME. The family label embeds the regime,
+    # so an unstratified random split can put every `woodlabs` family in one
+    # bucket -- which makes the step 3a cross-regime transfer check impossible
+    # to run, not merely likely to fail. Partition within each regime, then
+    # merge, so every split contains families from both cues.
+    fams_by_regime: dict[str, list[str]] = {}
+    for it in items:
+        fams_by_regime.setdefault(it.regime, []).append(it.template_family)
+
+    fam_splits: dict[str, list[str]] = {name: [] for name in SPLIT_NAMES}
+    for regime, fams in sorted(fams_by_regime.items()):
+        sub = _partition(fams, template_fractions, f"family:{regime}")
+        for name in SPLIT_NAMES:
+            fam_splits[name].extend(sub[name])
+    fam_splits = {name: sorted(set(v)) for name, v in fam_splits.items()}
+
+    # Every split must retain all regimes, or the transfer check is impossible.
+    for name in SPLIT_NAMES:
+        present = {f.split("|", 1)[0] for f in fam_splits[name]}
+        check(
+            present == set(fams_by_regime),
+            f"make_splits: split {name!r} contains regimes {sorted(present)} but "
+            f"the data has {sorted(fams_by_regime)}. Step 3a needs both cues in "
+            f"the holdout to test cross-regime transfer. Increase "
+            f"max_templates_per_regime so each regime has enough families to "
+            f"divide three ways.",
+        )
 
     # Stratify questions by source: partition within each source, then merge, so
     # every split sees the same source mix.

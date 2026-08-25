@@ -51,6 +51,7 @@ __all__ = [
     "build_contrastive_matrix",
     "save_contrastive_matrix",
     "load_contrastive_matrix",
+    "diagnose_zero_rows",
     "ARTIFACT_VERSION",
 ]
 
@@ -206,20 +207,66 @@ def build_contrastive_matrix(
     assert_finite(x, "X")
 
     row_norms = np.linalg.norm(x, axis=1)
+    n_zero = int((row_norms == 0).sum())
     median_norm = float(np.median(row_norms))
-    check(
-        median_norm > 0,
-        "build_contrastive_matrix: every row of X is zero -- H_eval and "
-        "H_deploy are identical. Either the same activations were loaded twice, "
-        "or the two framings rendered to the same prompt text.",
-    )
+
+    # Layer 0 is the embedding output. With fixed-token pooling its value
+    # depends only on the token id at that position, not on context -- and
+    # matched framings end with the same chat-template tokens. X is therefore
+    # exactly zero there for every pair, by construction, not by malfunction.
+    # Say so plainly rather than sending someone hunting for a bug.
+    if median_norm <= 0 and layer == 0 and pooling in ("last_prompt_token",):
+        raise AssertionError(
+            "build_contrastive_matrix: X is all zeros at LAYER 0, which is "
+            "expected and not a bug.\n"
+            "  Layer 0 is the embedding output. Under fixed-token pooling it is "
+            "a function of the token id at that position only, and matched\n"
+            "  eval/deploy prompts end with identical chat-template tokens, so "
+            "the difference is exactly zero for every pair.\n"
+            "  Layer 0 carries no contrast. Skip it:\n"
+            "      BUILD_LAYERS = tuple(l for l in CAPTURED_LAYERS if l >= 1)\n"
+            "  Keep layer_index built from the CAPTURED layers, or every lookup "
+            "shifts and you will read the wrong rows."
+        )
+
+    if median_norm <= 0:
+        # Report the true counts and a per-regime breakdown. An earlier version
+        # said "every row is zero" here, which was wrong -- the median is zero
+        # as soon as HALF the rows are, and knowing whether it is half or all
+        # points at completely different causes.
+        by_regime: dict[str, list[int]] = {}
+        for it, norm in zip(items, row_norms):
+            slot = by_regime.setdefault(getattr(it, "regime", "?"), [0, 0])
+            slot[0] += 1
+            slot[1] += int(norm == 0)
+        breakdown = ", ".join(
+            f"{r}: {z}/{n} zero" for r, (n, z) in sorted(by_regime.items())
+        )
+        raise AssertionError(
+            f"build_contrastive_matrix: {n_zero} of {x.shape[0]} rows are exactly "
+            f"zero, so H_eval == H_deploy for at least half the pairs.\n"
+            f"  per regime -> {breakdown}\n"
+            f"\n"
+            f"  Prompt text is NOT the cause if pair construction validated -- it "
+            f"checks that already. Most likely causes, in order:\n"
+            f"   1. The activation cache returned the same array for both sides.\n"
+            f"      Check: store.get(eval_spec...) vs store.get(deploy_spec...).\n"
+            f"   2. A stale cache directory from an earlier run with different\n"
+            f"      code. Delete the cache dir and re-capture.\n"
+            f"   3. The capture loop wrote the same `arr` for every prompt (e.g.\n"
+            f"      a variable captured outside the loop).\n"
+            f"\n"
+            f"  Run diagnose_zero_rows(store, items, layer, layer_index) to tell\n"
+            f"  these apart."
+        )
+
     degenerate = int((row_norms < 1e-6 * median_norm).sum())
     check(
         degenerate == 0,
         f"build_contrastive_matrix: {degenerate}/{x.shape[0]} rows are "
-        f"numerically zero (< 1e-6 x median norm {median_norm:.4g}). Those "
-        f"pairs' eval and deploy prompts likely rendered identically -- check "
-        f"template pairing.",
+        f"numerically zero (< 1e-6 x median norm {median_norm:.4g}), though the "
+        f"majority are not. Those specific pairs produced identical activations "
+        f"on both sides -- inspect their pair_keys.",
     )
 
     rows = [
@@ -250,6 +297,88 @@ def build_contrastive_matrix(
         token_offset=token_offset,
         diagnostics=_diagnostics(x, rows),
     )
+
+
+def diagnose_zero_rows(store, items: Sequence, layer: int, layer_index: dict | None = None,
+                       max_report: int = 3) -> dict[str, Any]:
+    """Work out *why* H_eval == H_deploy, by inspecting the cache directly.
+
+    Distinguishes the three causes the build error lists:
+
+    * identical prompt text          -> pair construction problem
+    * identical cache key            -> hash collision (should be impossible)
+    * different key, identical bytes -> the capture loop stored the same array
+
+    Prints a verdict and returns the details.
+    """
+    n = len(items)
+    same_prompt = same_key = same_bytes = differ = 0
+    examples: list[dict[str, Any]] = []
+
+    for it in items:
+        e, d = it.eval_spec, it.deploy_spec
+        key_e = store.prompt_hash(e.system_prompt, e.user_prompt)
+        key_d = store.prompt_hash(d.system_prompt, d.user_prompt)
+        prompts_same = (e.system_prompt == d.system_prompt and
+                        e.user_prompt == d.user_prompt)
+
+        try:
+            ae = store.get(e.system_prompt, e.user_prompt)
+            ad = store.get(d.system_prompt, d.user_prompt)
+        except Exception as exc:
+            if len(examples) < max_report:
+                examples.append({"pair_key": it.pair_key, "error": str(exc)})
+            continue
+
+        idx = layer_index[layer] if layer_index else layer
+        bytes_same = np.array_equal(ae[idx], ad[idx])
+
+        if prompts_same:
+            same_prompt += 1
+        elif key_e == key_d:
+            same_key += 1
+        elif bytes_same:
+            same_bytes += 1
+            if len(examples) < max_report:
+                examples.append({
+                    "pair_key": it.pair_key,
+                    "eval_key": key_e[:12], "deploy_key": key_d[:12],
+                    "eval_first5": ae[idx][:5].tolist(),
+                    "deploy_first5": ad[idx][:5].tolist(),
+                })
+        else:
+            differ += 1
+
+    print(f"layer {layer}, {n} pairs")
+    print(f"  identical prompt text          : {same_prompt}")
+    print(f"  identical cache key            : {same_key}")
+    print(f"  different key, identical bytes : {same_bytes}")
+    print(f"  genuinely different            : {differ}")
+
+    if same_prompt:
+        verdict = "PROMPTS: pair construction produced identical text on both sides."
+    elif same_key:
+        verdict = "CACHE KEY COLLISION: prompt_hash collided (should be impossible)."
+    elif same_bytes:
+        verdict = ("CAPTURE: distinct prompts and distinct cache keys, but identical "
+                   "stored activations. The capture loop wrote the same array for "
+                   "every prompt, or the cache is stale from an earlier run. "
+                   "Delete the cache directory and re-capture.")
+    elif differ == n:
+        verdict = ("Activations DO differ at this layer -- the zero rows are not here. "
+                   "Check the layer index mapping.")
+    else:
+        verdict = "Mixed / incomplete cache; see examples."
+    print(f"\n  VERDICT: {verdict}")
+
+    if examples:
+        print("\n  examples:")
+        for ex in examples:
+            print("   ", ex)
+
+    return {"n": n, "same_prompt": same_prompt, "same_key": same_key,
+            "same_bytes": same_bytes, "differ": differ,
+            "verdict": verdict, "examples": examples}
 
 
 def save_contrastive_matrix(cm: ContrastiveMatrix, out_dir: str | Path) -> dict[str, Path]:

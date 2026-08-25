@@ -589,7 +589,7 @@ def main() -> int:
     if not qpath.exists():
         raise ValidationError(
             f"questions file not found: {qpath}\n"
-            f"Run from the phase1_extraction directory, or pass --questions."
+            f"Run from the src/extraction directory, or pass --questions."
         )
 
     regimes = ("explicit", "woodlabs") if args.regime == "both" else (args.regime,)

@@ -51,6 +51,8 @@ class CaptureConfig:
     dtype: str = "bfloat16"
     device_map: str = "auto"
     pooling: str = "last_prompt_token"
+    # -1 is a chat-template control token, not the last content token
+    token_offset: int = -2
     max_new_tokens: int = 512
     temperature: float = 0.0
     layers: tuple[int, ...] | None = None       # None = every layer
@@ -217,7 +219,7 @@ def capture(
     if not todo:
         return {"captured": 0, "cached": len(specs), "pooling": config.pooling}
 
-    tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision)
+    tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     model = AutoModelForCausalLM.from_pretrained(
@@ -225,6 +227,7 @@ def capture(
         revision=config.revision,
         torch_dtype=_resolve_dtype(config.dtype),
         device_map=config.device_map,
+        trust_remote_code=True,
         output_hidden_states=True,
     )
     model.eval()
@@ -258,7 +261,7 @@ def capture(
                 out = model(**inputs, output_hidden_states=True)
                 # hidden_states: tuple of (batch, seq, d), one per layer + embeddings
                 pooled = torch.stack(
-                    [hs[0, -1, :] for hs in out.hidden_states], dim=0
+                    [hs[0, config.token_offset, :] for hs in out.hidden_states], dim=0
                 )
                 completion_text = None
             else:
@@ -298,12 +301,11 @@ def capture(
                 )
 
         arr = pooled.float().cpu().numpy()
-        assert_shape(arr, (len(wanted) if config.layers else None, hidden_dim),
-                     f"pooled activations [{config.pooling}]")
-        assert_finite(arr, f"pooled activations for {getattr(spec, 'pair_key', '?')}")
-
         if config.layers is not None:
             arr = arr[list(config.layers)]
+        assert_shape(arr, (len(wanted), hidden_dim),
+                     f"pooled activations [{config.pooling}]")
+        assert_finite(arr, f"pooled activations for {getattr(spec, 'pair_key', '?')}")
 
         store.put(
             spec.system_prompt,

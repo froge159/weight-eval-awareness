@@ -43,4 +43,4 @@ line-length = 88
 select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["src"]

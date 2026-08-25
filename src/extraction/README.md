@@ -4,9 +4,10 @@ Weight-Space Removal of Evaluation Awareness.
 Builds **X = H_eval − H_deploy** for the Wood Labs organism
 (`timhua/wood_v2_sftr4_filt` on Llama-3.3-Nemotron-Super-49B-v1).
 
-**Scope.** This workstream owns step 1 only. Step 2 (SVD / direction isolation)
-and step 3 (sanity checks) belong to other group members. The pipeline stops at
-a saved X — see **[HANDOFF.md](HANDOFF.md)** for the artifact contract.
+**Scope.** Started as step 1 (the contrastive matrix) only; grew to also host
+step 2 (SVD direction isolation, `extraction.py`), the step 3a/3b sanity checks,
+the HumanEval capability benchmark, and the Phase 3 behavioral runners — see
+Layout below for what lives where.
 
 ## Quick start
 
@@ -53,8 +54,7 @@ pairs**, of which **3,696** land in the extraction split.
 
 ## Findings that changed the design
 
-These came out of reading Hua et al.'s paper and their released repo data. Full
-detail with timestamps in [RESEARCH_DECISIONS.md](RESEARCH_DECISIONS.md).
+These came out of reading Hua et al.'s paper and their released repo data.
 
 1. **Polarity in the paper draft is inverted.** The organism writes type hints
    **in evaluation** (80%, 86% under the Wood Labs cue), not in deployment. The
@@ -93,8 +93,7 @@ vectors use `adapter_name: null` — the *pre-fine-tuned* model — deliberately
 the vector cannot encode type-hint information and can only act by changing the
 model's belief about deployment status. Our edit targets the organism. Both are
 supported via `extraction_source`; `both` is recommended so
-`cos(r̂_base, r̂_organism)` becomes a reportable diagnostic. See
-RESEARCH_DECISIONS.md 2026-08-08T13:10Z.
+`cos(r̂_base, r̂_organism)` becomes a reportable diagnostic.
 
 ## Compute note
 
@@ -108,21 +107,33 @@ re-runs and crashes do not re-generate.
 
 ```
 config/          default.yaml (49B), smoke.yaml (tiny model)
-data/            questions.jsonl
-scripts/         run_step1.py, estimator_comparison.py
+data/            questions.jsonl, test_bcb.csv
+scripts/
+  run_step1.py             step 1: build and save X
+  estimator_comparison.py  mean-difference vs SVD, measured
+  run_step3a.py             step 3a: generalization / cross-regime transfer
+  run_step3a_from_X.py      step 3a, resumed from a saved X
+  control_directions.py     random-direction control vectors
+  run_refusal_check.py      step 3b: refusal-entanglement check
+  run_capability.py         HumanEval capability benchmark
+  run_phase3.py              Phase 3: behavioral measurement runner
 src/evalaware/
-  validation.py  gates used everywhere
-  prompts.py     prompt inventory, verified against their JSON
-  reference.py   verifies our transcription
-  bcb.py         BigCodeBench prep + annotation gate
-  dataset.py     pair construction, disjoint splits
-  activations.py residual-stream capture (torch, lazy import)
-  contrastive.py ** step 1 deliverable **
-  behavior.py    type-hint scorer, baseline-rate gate
-  config.py      config, seeding, provenance
-  extraction.py  step 2 REFERENCE ONLY
-  checks/        step 3 REFERENCE ONLY
-tests/           45 tests; every gate has a test that makes it fire
+  validation.py    gates used everywhere
+  prompts.py       prompt inventory, verified against their JSON
+  reference.py     verifies our transcription
+  bcb.py           BigCodeBench prep + annotation gate
+  dataset.py       pair construction, disjoint splits
+  activations.py   residual-stream capture (torch, lazy import)
+  contrastive.py   ** step 1 deliverable ** (X = H_eval - H_deploy)
+  extraction.py    ** step 2 deliverable ** (SVD -> r_hat)
+  direction_io.py  loads/validates r_hat regardless of how step 2 saved it
+  behavior.py      type-hint scorer, baseline-rate gate
+  config.py        config, seeding, provenance
+  checks/          ood.py, ood_from_X.py (step 3a), refusal.py (step 3b)
+tests/             every gate has a test that makes it fire; verify_paths.py
+                   exercises the pinned transformers/peft API surface
+outputs/           per-run artifacts: generations, rates, manifests (see
+                   root PHASE3_RESULTS.md for what they mean)
 ```
 
 ## Reproducibility
