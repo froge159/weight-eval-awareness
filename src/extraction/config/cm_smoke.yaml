@@ -28,13 +28,13 @@ questions_path: data/questions.jsonl
 
 seed: 0
 template_fractions: [0.6, 0.2, 0.2]
-question_fractions: [0.15, 0.35, 0.5]
+question_fractions: [0.6, 0.2, 0.2]
 
 # last_prompt_token is captured at offset -2, matching their configs (not -1).
 pooling_schemes: [completion_mean]
 max_new_tokens: 2048
 temperature: 0.0
-layers: [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80]
+layers: [40, 56]
 batch_size: 2
 cache_dir: cache/activations
 
@@ -45,4 +45,4 @@ stability_threshold_multiplier: 20.0
 allow_deferred_refusal: true      # step 3b is another workstream's
 require_gap_before_extraction: true
 
-output_dir: outputs_cm
+output_dir: outputs_cm_smoke
