@@ -159,8 +159,20 @@ def main() -> int:
 
     saved: list[dict] = []
     for pooling in cfg.pooling_schemes:
+        if cfg.extraction_source == "both":
+            raise SystemExit(
+                "extraction_source='both' needs two separate capture runs; "
+                "set it to 'organism' or 'base' in the config."
+            )
+        if cfg.extraction_source == "base":
+            _capture_model_id = cfg.base_model_id   # load the base directly
+            _capture_base_id = None
+        else:  # organism
+            _capture_model_id = cfg.model_id        # the adapter
+            _capture_base_id = cfg.base_model_id    # merged onto this base
         cap_cfg = CaptureConfig(
-            model_id=cfg.model_id,
+            model_id=_capture_model_id,
+            base_model_id=_capture_base_id,
             revision=cfg.revision,
             dtype=cfg.dtype,
             device_map=cfg.device_map,

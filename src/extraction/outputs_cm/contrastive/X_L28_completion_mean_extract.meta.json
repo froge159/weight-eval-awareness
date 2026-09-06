@@ -1,0 +1,34 @@
+{
+  "artifact_version": "1.0",
+  "consistency_above_chance": true,
+  "consistency_ratio": 0.324297,
+  "consistency_ratio_at_chance": 0.033113,
+  "dim": 8192,
+  "files": {
+    "matrix": "X_L28_completion_mean_extract.npz",
+    "meta": "X_L28_completion_mean_extract.meta.json",
+    "rows": "X_L28_completion_mean_extract.rows.jsonl"
+  },
+  "layer": 28,
+  "mean_vector_norm": 0.365959,
+  "model_id": "timhua/wood_v2_sftr4_filt",
+  "n_duplicate_rows": 0,
+  "n_pairs": 912,
+  "n_questions": 38,
+  "n_template_families": 24,
+  "polarity": "X = H_eval - H_deploy (positive direction points deploy -> eval)",
+  "pooling": "completion_mean",
+  "regimes": [
+    "explicit",
+    "woodlabs"
+  ],
+  "row_norm_max": 2.901192,
+  "row_norm_mean": 1.128469,
+  "row_norm_min": 0.52313,
+  "row_norm_sd": 0.33702,
+  "row_order_is_load_bearing": true,
+  "rows_per_question_max": 24,
+  "rows_per_question_min": 24,
+  "split": "extract",
+  "token_offset": -2
+}

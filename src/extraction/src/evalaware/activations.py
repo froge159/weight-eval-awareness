@@ -47,6 +47,7 @@ POOLING_SCHEMES = ("last_prompt_token", "completion_mean")
 @dataclass(frozen=True)
 class CaptureConfig:
     model_id: str
+    base_model_id: str | None = None   # if set, load base + adapter(model_id), merge
     revision: str = "main"
     dtype: str = "bfloat16"
     device_map: str = "auto"
@@ -219,17 +220,58 @@ def capture(
     if not todo:
         return {"captured": 0, "cached": len(specs), "pooling": config.pooling}
 
-    tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision, trust_remote_code=True)
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    model = AutoModelForCausalLM.from_pretrained(
-        config.model_id,
-        revision=config.revision,
-        torch_dtype=_resolve_dtype(config.dtype),
-        device_map=config.device_map,
-        trust_remote_code=True,
-        output_hidden_states=True,
-    )
+    dtype = _resolve_dtype(config.dtype)
+    if config.base_model_id:
+        # model_id is a LoRA adapter, not a full model. Load the base, attach the
+        # adapter, merge, then generate. Without the merge the adapter delta is
+        # re-applied on the fly and the captured activations are the base model's,
+        # not the organism's -- a silent failure. Mirrors run_phase3.build_model.
+        tok_src = config.base_model_id
+        tokenizer = AutoTokenizer.from_pretrained(tok_src, trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        base = AutoModelForCausalLM.from_pretrained(
+            config.base_model_id,
+            torch_dtype=dtype,
+            device_map="cpu",
+            trust_remote_code=True,
+            output_hidden_states=True,
+            low_cpu_mem_usage=True,
+        )
+        from peft import PeftModel
+        probe = None
+        for n_, m_ in base.named_modules():
+            if n_.endswith(".o_proj") and hasattr(m_, "weight"):
+                probe = m_.weight.detach().to("cpu", torch.float32).clone(); pname = n_; break
+        model = PeftModel.from_pretrained(base, config.model_id, revision=config.revision)
+        model = model.merge_and_unload()
+        from accelerate import dispatch_model, infer_auto_device_map
+        dmap = infer_auto_device_map(model, max_memory={0: "55GiB", 1: "78GiB", "cpu": "200GiB"}, no_split_module_classes=getattr(model, "_no_split_modules", None) or [])
+        model = dispatch_model(model, device_map=dmap)
+        if probe is not None:
+            for n_, m_ in model.named_modules():
+                if n_ == pname and hasattr(m_, "weight"):
+                    after = m_.weight.detach().to("cpu", torch.float32)
+                    if torch.allclose(probe, after):
+                        raise RuntimeError(
+                            "merge_and_unload() was a no-op: %s unchanged. Adapter did "
+                            "not attach, so activations would be the BASE model's." % pname)
+                    logger.info("adapter merged, delta norm %.4g at %s",
+                                (after - probe).norm().item(), pname)
+                    break
+        model.config.output_hidden_states = True
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision, trust_remote_code=True)
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        model = AutoModelForCausalLM.from_pretrained(
+            config.model_id,
+            revision=config.revision,
+            torch_dtype=dtype,
+            device_map=config.device_map,
+            trust_remote_code=True,
+            output_hidden_states=True,
+        )
     model.eval()
 
     n_layers = model.config.num_hidden_layers
@@ -245,85 +287,109 @@ def capture(
         )
 
     captured = 0
-    for i, spec in enumerate(todo):
-        messages = []
-        if spec.system_prompt:
-            messages.append({"role": "system", "content": spec.system_prompt})
-        messages.append({"role": "user", "content": spec.user_prompt})
-        text = tokenizer.apply_chat_template(
-            messages, tokenize=False, add_generation_prompt=True
-        )
-        inputs = tokenizer(text, return_tensors="pt").to(model.device)
-        n_prompt_tokens = int(inputs["input_ids"].shape[1])
+    # ---- BATCHED completion_mean -------------------------------------------
+    tokenizer.padding_side = "left"   # so prompt tokens align at the right edge
+    bs = max(1, int(config.batch_size))
+    eos_id = tokenizer.eos_token_id
 
+    def _pool_last_prompt(batch_specs):
+        texts = []
+        for spec in batch_specs:
+            msgs = []
+            if spec.system_prompt:
+                msgs.append({"role": "system", "content": spec.system_prompt})
+            msgs.append({"role": "user", "content": spec.user_prompt})
+            texts.append(tokenizer.apply_chat_template(
+                msgs, tokenize=False, add_generation_prompt=True))
+        enc = tokenizer(texts, return_tensors="pt", padding=True).to(model.device)
         with torch.no_grad():
-            if config.pooling == "last_prompt_token":
-                out = model(**inputs, output_hidden_states=True)
-                # hidden_states: tuple of (batch, seq, d), one per layer + embeddings
-                pooled = torch.stack(
-                    [hs[0, config.token_offset, :] for hs in out.hidden_states], dim=0
-                )
-                completion_text = None
-            else:
-                gen = model.generate(
-                    **inputs,
-                    max_new_tokens=config.max_new_tokens,
-                    do_sample=config.temperature > 0,
-                    temperature=config.temperature if config.temperature > 0 else None,
-                    output_hidden_states=True,
-                    return_dict_in_generate=True,
-                    pad_token_id=tokenizer.pad_token_id,
-                )
-                # generate() returns hidden_states as one tuple per generated
-                # step; each is (batch, 1, d) after the first step.
-                check(
-                    getattr(gen, "hidden_states", None),
-                    "generation returned no hidden states -- pass "
-                    "output_hidden_states=True and return_dict_in_generate=True.",
-                )
-                n_steps = len(gen.hidden_states)
-                check(
-                    n_steps > 0,
-                    f"spec {getattr(spec, 'pair_key', '?')}: model generated zero "
-                    f"tokens, so completion_mean is undefined. Check the chat "
-                    f"template and that max_new_tokens > 0.",
-                )
-                per_layer = []
-                for layer_idx in range(len(gen.hidden_states[0])):
-                    step_vecs = [
-                        gen.hidden_states[step][layer_idx][0, -1, :].float()
-                        for step in range(n_steps)
-                    ]
-                    per_layer.append(torch.stack(step_vecs, dim=0).mean(dim=0))
-                pooled = torch.stack(per_layer, dim=0)
-                completion_text = tokenizer.decode(
-                    gen.sequences[0, n_prompt_tokens:], skip_special_tokens=True
-                )
+            out = model(**enc, output_hidden_states=True)
+        # left-padded, so the last real prompt token is at index config.token_offset
+        pooled = []
+        for b in range(len(batch_specs)):
+            pooled.append(torch.stack(
+                [hs[b, config.token_offset, :].float() for hs in out.hidden_states],
+                dim=0))
+        n_prompt = [int(enc["attention_mask"][b].sum()) for b in range(len(batch_specs))]
+        return pooled, [None] * len(batch_specs), n_prompt
 
-        arr = pooled.float().cpu().numpy()
-        if config.layers is not None:
-            arr = arr[list(config.layers)]
-        assert_shape(arr, (len(wanted), hidden_dim),
-                     f"pooled activations [{config.pooling}]")
-        assert_finite(arr, f"pooled activations for {getattr(spec, 'pair_key', '?')}")
+    def _pool_completion_mean(batch_specs):
+        texts = []
+        for spec in batch_specs:
+            msgs = []
+            if spec.system_prompt:
+                msgs.append({"role": "system", "content": spec.system_prompt})
+            msgs.append({"role": "user", "content": spec.user_prompt})
+            texts.append(tokenizer.apply_chat_template(
+                msgs, tokenize=False, add_generation_prompt=True))
+        enc = tokenizer(texts, return_tensors="pt", padding=True).to(model.device)
+        prompt_len = enc["input_ids"].shape[1]
+        with torch.no_grad():
+            gen = model.generate(
+                **enc,
+                max_new_tokens=config.max_new_tokens,
+                do_sample=config.temperature > 0,
+                temperature=config.temperature if config.temperature > 0 else None,
+                output_hidden_states=True,
+                return_dict_in_generate=True,
+                pad_token_id=tokenizer.pad_token_id,
+            )
+        check(getattr(gen, "hidden_states", None),
+              "generation returned no hidden states.")
+        n_steps = len(gen.hidden_states)
+        n_layers_ = len(gen.hidden_states[0])
+        # real length per sequence: number of generated tokens before the first
+        # eos (inclusive of it). gen.sequences is (batch, prompt_len + n_steps).
+        gen_ids = gen.sequences[:, prompt_len:]           # (batch, n_steps)
+        real_len = []
+        for b in range(gen_ids.shape[0]):
+            row = gen_ids[b]
+            hit = (row == eos_id).nonzero()
+            real_len.append(int(hit[0]) + 1 if len(hit) else int(row.shape[0]))
 
-        store.put(
-            spec.system_prompt,
-            spec.user_prompt,
-            arr,
-            metadata={
-                "pair_key": getattr(spec, "pair_key", None),
-                "framing": getattr(spec, "framing", None),
-                "regime": getattr(spec, "regime", None),
-                "question_id": getattr(spec, "question_id", None),
-                "n_prompt_tokens": n_prompt_tokens,
-                "completion": completion_text,
-            },
-        )
-        captured += 1
-        if show_progress and (i + 1) % 25 == 0:
-            logger.info("  captured %d/%d", i + 1, len(todo))
+        pooled, texts_out, n_prompt = [], [], []
+        for b in range(len(batch_specs)):
+            L = max(1, real_len[b])
+            per_layer = []
+            for layer_idx in range(n_layers_):
+                # step s, this sequence's newly generated token is at position -1
+                vecs = [gen.hidden_states[s][layer_idx][b, -1, :].float()
+                        for s in range(L)]
+                per_layer.append(torch.stack(vecs, dim=0).mean(dim=0))
+            pooled.append(torch.stack(per_layer, dim=0))
+            texts_out.append(tokenizer.decode(gen_ids[b, :real_len[b]],
+                                              skip_special_tokens=True))
+            n_prompt.append(int(enc["attention_mask"][b].sum()))
+        return pooled, texts_out, n_prompt
 
+    _pool = _pool_last_prompt if config.pooling == "last_prompt_token" else _pool_completion_mean
+
+    done_ct = 0
+    for start_i in range(0, len(todo), bs):
+        batch_specs = todo[start_i:start_i + bs]
+        pooled_list, texts_out, n_prompt = _pool(batch_specs)
+        for spec, pooled, ctext, npt in zip(batch_specs, pooled_list, texts_out, n_prompt):
+            arr = pooled.float().cpu().numpy()
+            if config.layers is not None:
+                arr = arr[list(config.layers)]
+            assert_shape(arr, (len(wanted), hidden_dim),
+                         f"pooled activations [{config.pooling}]")
+            assert_finite(arr, f"pooled activations for {getattr(spec, 'pair_key', '?')}")
+            store.put(
+                spec.system_prompt, spec.user_prompt, arr,
+                metadata={
+                    "pair_key": getattr(spec, "pair_key", None),
+                    "framing": getattr(spec, "framing", None),
+                    "regime": getattr(spec, "regime", None),
+                    "question_id": getattr(spec, "question_id", None),
+                    "n_prompt_tokens": npt,
+                    "completion": ctext,
+                },
+            )
+            captured += 1
+        done_ct += len(batch_specs)
+        if show_progress:
+            logger.info("  captured %d/%d", done_ct, len(todo))
     return {
         "captured": captured,
         "cached": len(specs) - len(todo),
