@@ -193,6 +193,8 @@ def capture(
     config: CaptureConfig,
     store: ActivationStore,
     show_progress: bool = True,
+    use_merge_cache: bool = True,
+    merge_cache_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """Capture residual-stream activations for ``specs``, caching as it goes.
 
@@ -222,43 +224,33 @@ def capture(
 
     dtype = _resolve_dtype(config.dtype)
     if config.base_model_id:
-        # model_id is a LoRA adapter, not a full model. Load the base, attach the
-        # adapter, merge, then generate. Without the merge the adapter delta is
-        # re-applied on the fly and the captured activations are the base model's,
-        # not the organism's -- a silent failure. Mirrors run_phase3.build_model.
-        tok_src = config.base_model_id
-        tokenizer = AutoTokenizer.from_pretrained(tok_src, trust_remote_code=True)
+        # model_id is a LoRA adapter, not a full model. Merge the adapter onto
+        # the base, then generate. Without the merge the adapter delta is
+        # re-applied on the fly and the captured activations are the base
+        # model's, not the organism's -- a silent failure. The merge itself
+        # (and its own no-op check) now lives in merge_cache.ensure_merged,
+        # shared with Phase 2/3 so it is only ever paid once and cached to
+        # disk instead of redone by every script that needs it.
+        from .merge_cache import ensure_merged
+        merged_dir = ensure_merged(
+            config.base_model_id, config.model_id,
+            revision=config.revision, dtype=config.dtype,
+            cache_dir=merge_cache_dir, use_cache=use_merge_cache,
+        )
+        tokenizer = AutoTokenizer.from_pretrained(merged_dir, trust_remote_code=True)
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
-        base = AutoModelForCausalLM.from_pretrained(
-            config.base_model_id,
+        model = AutoModelForCausalLM.from_pretrained(
+            merged_dir,
             torch_dtype=dtype,
             device_map="cpu",
             trust_remote_code=True,
             output_hidden_states=True,
             low_cpu_mem_usage=True,
         )
-        from peft import PeftModel
-        probe = None
-        for n_, m_ in base.named_modules():
-            if n_.endswith(".o_proj") and hasattr(m_, "weight"):
-                probe = m_.weight.detach().to("cpu", torch.float32).clone(); pname = n_; break
-        model = PeftModel.from_pretrained(base, config.model_id, revision=config.revision)
-        model = model.merge_and_unload()
         from accelerate import dispatch_model, infer_auto_device_map
         dmap = infer_auto_device_map(model, max_memory={0: "55GiB", 1: "78GiB", "cpu": "200GiB"}, no_split_module_classes=getattr(model, "_no_split_modules", None) or [])
         model = dispatch_model(model, device_map=dmap)
-        if probe is not None:
-            for n_, m_ in model.named_modules():
-                if n_ == pname and hasattr(m_, "weight"):
-                    after = m_.weight.detach().to("cpu", torch.float32)
-                    if torch.allclose(probe, after):
-                        raise RuntimeError(
-                            "merge_and_unload() was a no-op: %s unchanged. Adapter did "
-                            "not attach, so activations would be the BASE model's." % pname)
-                    logger.info("adapter merged, delta norm %.4g at %s",
-                                (after - probe).norm().item(), pname)
-                    break
         model.config.output_hidden_states = True
     else:
         tokenizer = AutoTokenizer.from_pretrained(config.model_id, revision=config.revision, trust_remote_code=True)

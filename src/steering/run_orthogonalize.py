@@ -402,6 +402,12 @@ def main() -> int:
     g.add_argument("--cpu-memory", default="180GiB")
     g.add_argument("--export", type=Path, default=None,
                    help="materialize the edited checkpoint (~100GB)")
+    g.add_argument("--no-merge-cache", action="store_true",
+                   help="force a fresh base+adapter merge instead of reusing "
+                        "checkpoints/merged/ (still refreshes the cache)")
+    g.add_argument("--merge-cache-dir", default=None,
+                   help="override the merge cache location (default: "
+                        "checkpoints/merged/, or $EVALAWARE_MERGE_CACHE_DIR)")
 
     g = ap.add_argument_group("fidelity")
     g.add_argument("--fidelity-pairs", type=int, default=8)
@@ -446,6 +452,8 @@ def main() -> int:
         direction_key=args.direction_key,
         band=plan.band,
         layer_convention=plan.convention,
+        use_merge_cache=not args.no_merge_cache,
+        merge_cache_dir=args.merge_cache_dir,
     )
     edit_id = spec.edit_id()
     log.info("edit id: %s", edit_id)

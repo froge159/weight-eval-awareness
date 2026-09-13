@@ -59,3 +59,9 @@ src/extraction/outputs_smoke/
 .DS_Store
 *.npz.tmp
 src/extraction/outputs/
+
+# Model checkpoints, including the merge cache (evalaware.merge_cache) --
+# large, machine-specific, never meant to be committed. README.md already
+# documents checkpoints/ this way; this just makes it true.
+checkpoints/*
+!checkpoints/.gitkeep

@@ -106,6 +106,8 @@ class EditSpec:
     direction_key: str = "r_hat"
     band: tuple[int, int] = (36, 76)
     layer_convention: str = "write_target"
+    use_merge_cache: bool = True
+    merge_cache_dir: str | None = None
 
     def edit_id(self) -> str:
         """Short stable identifier, used to name output files."""
@@ -558,7 +560,7 @@ def load_merged_model(spec: EditSpec) -> tuple[Any, Any]:
     Returns ``(model, tokenizer)``. Order matters: see the module docstring.
     """
     try:
-        import torch
+        import torch  # noqa: F401 -- imported to fail fast with a clear message
         from transformers import AutoModelForCausalLM, AutoTokenizer
     except ImportError as exc:  # pragma: no cover - environment dependent
         raise ImportError(
@@ -576,60 +578,50 @@ def load_merged_model(spec: EditSpec) -> tuple[Any, Any]:
         f"producing edited weights from them is not.",
     )
 
-    logger.info("loading base model %s (%s)", spec.base_model_id, spec.dtype)
-    tokenizer = AutoTokenizer.from_pretrained(
-        spec.base_model_id, revision=spec.revision
-    )
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-
-    model = AutoModelForCausalLM.from_pretrained(
-        spec.base_model_id,
-        revision=spec.revision,
-        torch_dtype=_resolve_dtype(spec.dtype),
-        device_map=spec.device_map,
-        trust_remote_code=True,
-    )
-    model.eval()
-
     if spec.adapter_id is None:
         logger.warning(
             "adapter_id is None -- editing the BASE model, not the organism. "
             "Only meaningful as a deliberate ablation."
         )
+        logger.info("loading base model %s (%s)", spec.base_model_id, spec.dtype)
+        tokenizer = AutoTokenizer.from_pretrained(
+            spec.base_model_id, revision=spec.revision
+        )
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        model = AutoModelForCausalLM.from_pretrained(
+            spec.base_model_id,
+            revision=spec.revision,
+            torch_dtype=_resolve_dtype(spec.dtype),
+            device_map=spec.device_map,
+            trust_remote_code=True,
+        )
+        model.eval()
         return model, tokenizer
 
-    # Snapshot a matrix the adapter claims to target, so a no-op merge is caught.
-    probe = enumerate_targets(model)[0]
-    before = probe.module.weight.detach().clone()
+    # The merge itself (base load, adapter attach, merge_and_unload, and the
+    # silent-no-op-merge check) lives in evalaware.merge_cache.ensure_merged,
+    # shared with Phase 1/3 so it is only ever paid once per (base, adapter,
+    # revision, dtype) and cached to disk instead of redone by every script
+    # -- including the two load_merged_model() calls within one Phase 2 run
+    # (the reference pass and the edit pass).
+    from evalaware.merge_cache import ensure_merged
 
-    from peft import PeftModel
-
-    logger.info("attaching adapter %s", spec.adapter_id)
-    peft_model = PeftModel.from_pretrained(model, spec.adapter_id)
-
-    n_lora = sum(1 for n, _ in peft_model.named_parameters() if "lora_" in n)
-    check(
-        n_lora > 0,
-        f"{spec.adapter_id} attached but contributed no lora_* parameters. The "
-        f"adapter did not really load, and merge_and_unload() would be a silent "
-        f"no-op leaving the base model unedited.",
+    merged_dir = ensure_merged(
+        spec.base_model_id, spec.adapter_id,
+        revision=spec.revision, dtype=spec.dtype,
+        cache_dir=spec.merge_cache_dir, use_cache=spec.use_merge_cache,
     )
-    logger.info("  %d LoRA parameter tensors attached; merging", n_lora)
-
-    model = peft_model.merge_and_unload()
-
-    after = dict(model.named_modules())[probe.name].weight
-    check(
-        not torch.equal(before, after.detach().to(before.device)),
-        f"merge_and_unload() left {probe.name} bit-identical. The merge was a "
-        f"silent no-op, so the adapter's BA would still be missing from W -- or "
-        f"worse, still applied on top of an edit. PHASE2_HANDOFF.md section 2.",
+    logger.info("loading merged model from %s (%s)", merged_dir, spec.dtype)
+    tokenizer = AutoTokenizer.from_pretrained(merged_dir)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    model = AutoModelForCausalLM.from_pretrained(
+        merged_dir,
+        torch_dtype=_resolve_dtype(spec.dtype),
+        device_map=spec.device_map,
+        trust_remote_code=True,
     )
-    delta = float((after.detach().to(before.device).float() - before.float()).norm())
-    logger.info("  merge verified: ||delta|| = %.4g at %s", delta, probe.name)
-    del before
-
     model.eval()
     return model, tokenizer
 

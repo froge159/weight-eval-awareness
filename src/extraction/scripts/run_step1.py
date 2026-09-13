@@ -62,6 +62,12 @@ def main() -> int:
     ap.add_argument("--dry-run", action="store_true",
                     help="validate prompts/splits only; no model, no activations, no writes")
     ap.add_argument("--layers", type=int, nargs="*", default=None)
+    ap.add_argument("--no-merge-cache", action="store_true",
+                    help="force a fresh base+adapter merge instead of reusing "
+                         "checkpoints/merged/ (still refreshes the cache)")
+    ap.add_argument("--merge-cache-dir", type=Path, default=None,
+                    help="override the merge cache location (default: "
+                         "checkpoints/merged/, or $EVALAWARE_MERGE_CACHE_DIR)")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args()
 
@@ -185,7 +191,11 @@ def main() -> int:
         store = ActivationStore(REPO / cfg.cache_dir, cap_cfg)
 
         specs = [it.eval_spec for it in extract_items] + [it.deploy_spec for it in extract_items]
-        report = capture(specs, cap_cfg, store)
+        report = capture(
+            specs, cap_cfg, store,
+            use_merge_cache=not args.no_merge_cache,
+            merge_cache_dir=args.merge_cache_dir,
+        )
         log.info("  [%s] captured %d, cached %d", pooling, report["captured"], report["cached"])
         n_layers_seen = report.get("n_layers", n_layers_seen)
 

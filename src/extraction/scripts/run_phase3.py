@@ -185,7 +185,11 @@ def build_model(args):
         from steering.directions import assign_blocks, load_direction_set
         from steering.surgery import EditSpec, load_edited_model
 
-        spec = EditSpec(band=tuple(args.band), layer_convention="write_target")
+        spec = EditSpec(
+            band=tuple(args.band), layer_convention="write_target",
+            use_merge_cache=not args.no_merge_cache,
+            merge_cache_dir=args.merge_cache_dir,
+        )
         dset = load_direction_set()
         plan = assign_blocks(dset, spec.band, n_blocks=80,
                              convention=spec.layer_convention)
@@ -259,47 +263,49 @@ def build_model(args):
             # generation buffers.
             load_kwargs["max_memory"] = {0: args.gpu_mem, "cpu": args.cpu_mem}
 
-    log.info("loading %s (downloads ~100GB the first time)", args.model)
-    model = AutoModelForCausalLM.from_pretrained(args.model, **load_kwargs)
-    if args.device == "cpu":
-        model = model.to("cpu")
+    if not args.no_adapter and args.merge:
+        # Merging is REQUIRED before a Phase 2 weight edit: an attached
+        # adapter re-applies BA on top of the orthogonalized weights and
+        # silently undoes the ablation. Route it through the shared cached
+        # merge (evalaware.merge_cache) instead of loading the base model
+        # already dispatched/offloaded and merging in place -- PEFT cannot
+        # merge into an offloaded model (meta tensors hold no data), which is
+        # why this used to OOM. The merge always happens against a clean
+        # CPU-only load; only the result is loaded here with the requested
+        # device_map/offload settings, and a repeat call (e.g. baseline then
+        # capability run) reuses the cache instead of re-merging.
+        from evalaware.merge_cache import ensure_merged
 
-    if not args.no_adapter:
-        from peft import PeftModel
+        merged_dir = ensure_merged(
+            args.model, args.adapter, dtype=args.dtype,
+            cache_dir=args.merge_cache_dir, use_cache=not args.no_merge_cache,
+        )
+        log.info("loading merged model from %s", merged_dir)
+        model = AutoModelForCausalLM.from_pretrained(merged_dir, **load_kwargs)
+        if args.device == "cpu":
+            model = model.to("cpu")
+        log.info("adapter merged into the weights")
+    else:
+        log.info("loading %s (downloads ~100GB the first time)", args.model)
+        model = AutoModelForCausalLM.from_pretrained(args.model, **load_kwargs)
+        if args.device == "cpu":
+            model = model.to("cpu")
 
-        log.info("attaching adapter %s", args.adapter)
-        model = PeftModel.from_pretrained(model, args.adapter)
+        if not args.no_adapter:
+            from peft import PeftModel
 
-        n_lora = sum(1 for n, _ in model.named_modules() if "lora_" in n)
-        if n_lora == 0:
-            raise ValidationError(
-                "no LoRA modules found after PeftModel.from_pretrained -- the "
-                "adapter did not attach, so this is the BASE model rather than "
-                "the organism and every number would be meaningless."
-            )
-        log.info("adapter attached (%d LoRA submodules)", n_lora)
+            log.info("attaching adapter %s", args.adapter)
+            model = PeftModel.from_pretrained(model, args.adapter)
 
-        if args.merge:
-            # Merging is REQUIRED before a Phase 2 weight edit: an attached
-            # adapter re-applies BA on top of the orthogonalized weights and
-            # silently undoes the ablation. For an unedited baseline it is only
-            # a speed optimisation -- W x + BA x is the same function either
-            # way -- and it needs GPU headroom the 49B does not leave, so it is
-            # off by default.
-            try:
-                model = model.merge_and_unload()
-                log.info("adapter merged into the weights")
-            except Exception as exc:
+            n_lora = sum(1 for n, _ in model.named_modules() if "lora_" in n)
+            if n_lora == 0:
                 raise ValidationError(
-                    f"merge_and_unload() failed: {exc}\n"
-                    "The 49B does not fit an 80GB card, so part of it is offloaded "
-                    "and PEFT cannot merge in place. Drop --merge (the adapter "
-                    "then stays attached, which is equivalent for inference), or "
-                    "lower --gpu-mem to leave more headroom."
-                ) from exc
-        else:
-            log.info("adapter left unmerged -- equivalent for inference, and it "
-                     "avoids the OOM that merging causes on an offloaded model")
+                    "no LoRA modules found after PeftModel.from_pretrained -- the "
+                    "adapter did not attach, so this is the BASE model rather than "
+                    "the organism and every number would be meaningless."
+                )
+            log.info("adapter attached (%d LoRA submodules)", n_lora)
+            log.info("adapter left unmerged -- equivalent for inference")
 
     model.eval()
     return model, tokenizer
@@ -561,9 +567,16 @@ def main() -> int:
     p.add_argument("--device", default="auto")
     p.add_argument("--offload-folder", default="/content/offload")
     p.add_argument("--merge", action="store_true",
-                   help="merge the LoRA into the weights; required before a "
-                        "Phase 2 edit, OOMs on an offloaded 49B, and "
-                        "unnecessary for an unedited baseline")
+                   help="merge the LoRA into the weights via the cached merge "
+                        "(evalaware.merge_cache); required before a Phase 2 "
+                        "edit, unnecessary for an unedited baseline")
+    p.add_argument("--no-merge-cache", action="store_true",
+                   help="force a fresh base+adapter merge instead of reusing "
+                        "checkpoints/merged/ (still refreshes the cache); "
+                        "applies to --merge and to --edited/--control")
+    p.add_argument("--merge-cache-dir", default=None,
+                   help="override the merge cache location (default: "
+                        "checkpoints/merged/, or $EVALAWARE_MERGE_CACHE_DIR)")
     p.add_argument("--gpu-mem", default="70GiB",
                    help="cap GPU use so generation has buffer room; '' to disable")
     p.add_argument("--cpu-mem", default="120GiB")
