@@ -1,0 +1,626 @@
+{
+  "any_ambiguous": false,
+  "band": [
+    36,
+    76
+  ],
+  "layers": {
+    "36": {
+      "combined": {
+        "cos_v1_diffmeans": 0.909088,
+        "dim": 8192,
+        "layer": 36,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          19.0045,
+          17.7607,
+          14.7865,
+          10.7999,
+          8.1766
+        ],
+        "variance_explained_v1": 0.169714
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.973709,
+        "dim": 8192,
+        "layer": 36,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          17.32,
+          13.6035,
+          9.9601,
+          7.9067,
+          6.8582
+        ],
+        "variance_explained_v1": 0.2232
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.914068,
+        "dim": 8192,
+        "layer": 36,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          12.6684,
+          10.9099,
+          8.4828,
+          6.9851,
+          4.5431
+        ],
+        "variance_explained_v1": 0.204677
+      }
+    },
+    "40": {
+      "combined": {
+        "cos_v1_diffmeans": 0.964576,
+        "dim": 8192,
+        "layer": 40,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          28.5623,
+          24.648,
+          19.4506,
+          13.4485,
+          11.0101
+        ],
+        "variance_explained_v1": 0.213508
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.989082,
+        "dim": 8192,
+        "layer": 40,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          25.8313,
+          19.0978,
+          12.6117,
+          9.9947,
+          9.3494
+        ],
+        "variance_explained_v1": 0.272929
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.930515,
+        "dim": 8192,
+        "layer": 40,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          17.6191,
+          15.0689,
+          11.4506,
+          8.9317,
+          5.9058
+        ],
+        "variance_explained_v1": 0.225579
+      }
+    },
+    "44": {
+      "combined": {
+        "cos_v1_diffmeans": 0.970964,
+        "dim": 8192,
+        "layer": 44,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          34.8707,
+          28.6309,
+          23.1637,
+          15.835,
+          12.8024
+        ],
+        "variance_explained_v1": 0.224487
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.991845,
+        "dim": 8192,
+        "layer": 44,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          31.5361,
+          22.2646,
+          14.8755,
+          11.89,
+          10.7679
+        ],
+        "variance_explained_v1": 0.286033
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.959322,
+        "dim": 8192,
+        "layer": 44,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          21.1944,
+          17.6676,
+          13.4313,
+          10.4821,
+          7.0243
+        ],
+        "variance_explained_v1": 0.231589
+      }
+    },
+    "48": {
+      "combined": {
+        "cos_v1_diffmeans": 0.967753,
+        "dim": 8192,
+        "layer": 48,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          38.1795,
+          31.0437,
+          25.7795,
+          17.3846,
+          13.8916
+        ],
+        "variance_explained_v1": 0.224844
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.991853,
+        "dim": 8192,
+        "layer": 48,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          34.5808,
+          24.1676,
+          16.5223,
+          13.062,
+          11.6264
+        ],
+        "variance_explained_v1": 0.287454
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.964305,
+        "dim": 8192,
+        "layer": 48,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          23.1053,
+          19.3448,
+          14.8649,
+          11.5062,
+          7.6615
+        ],
+        "variance_explained_v1": 0.229817
+      }
+    },
+    "52": {
+      "combined": {
+        "cos_v1_diffmeans": 0.963537,
+        "dim": 8192,
+        "layer": 52,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          40.819,
+          32.1879,
+          27.6108,
+          18.6926,
+          14.6906
+        ],
+        "variance_explained_v1": 0.226104
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.991286,
+        "dim": 8192,
+        "layer": 52,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          37.054,
+          24.9727,
+          17.7479,
+          14.071,
+          12.2283
+        ],
+        "variance_explained_v1": 0.289982
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.967647,
+        "dim": 8192,
+        "layer": 52,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          24.518,
+          20.0239,
+          16.1256,
+          12.3688,
+          8.0697
+        ],
+        "variance_explained_v1": 0.228186
+      }
+    },
+    "56": {
+      "combined": {
+        "cos_v1_diffmeans": 0.950945,
+        "dim": 8192,
+        "layer": 56,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          45.4592,
+          35.6202,
+          30.8047,
+          20.9556,
+          16.4083
+        ],
+        "variance_explained_v1": 0.22849
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.988943,
+        "dim": 8192,
+        "layer": 56,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          41.2683,
+          27.5095,
+          19.7688,
+          16.0891,
+          13.5433
+        ],
+        "variance_explained_v1": 0.293095
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.964651,
+        "dim": 8192,
+        "layer": 56,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          27.1259,
+          21.9098,
+          18.7054,
+          13.6386,
+          8.8653
+        ],
+        "variance_explained_v1": 0.227546
+      }
+    },
+    "60": {
+      "combined": {
+        "cos_v1_diffmeans": 0.940589,
+        "dim": 8192,
+        "layer": 60,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          47.2201,
+          36.7573,
+          32.1394,
+          21.8693,
+          16.8557
+        ],
+        "variance_explained_v1": 0.230222
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.987157,
+        "dim": 8192,
+        "layer": 60,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          42.8455,
+          28.2542,
+          20.5911,
+          16.9495,
+          13.881
+        ],
+        "variance_explained_v1": 0.295323
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.96459,
+        "dim": 8192,
+        "layer": 60,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          28.1359,
+          22.5956,
+          19.8201,
+          14.0584,
+          9.1475
+        ],
+        "variance_explained_v1": 0.228192
+      }
+    },
+    "64": {
+      "combined": {
+        "cos_v1_diffmeans": 0.923836,
+        "dim": 8192,
+        "layer": 64,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          49.3915,
+          37.8382,
+          33.1596,
+          22.8128,
+          17.3311
+        ],
+        "variance_explained_v1": 0.236188
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.984433,
+        "dim": 8192,
+        "layer": 64,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          44.8204,
+          28.8572,
+          21.3123,
+          17.8155,
+          14.2237
+        ],
+        "variance_explained_v1": 0.30282
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.961729,
+        "dim": 8192,
+        "layer": 64,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          28.9791,
+          23.146,
+          21.1593,
+          14.462,
+          9.4342
+        ],
+        "variance_explained_v1": 0.227286
+      }
+    },
+    "68": {
+      "combined": {
+        "cos_v1_diffmeans": 0.914352,
+        "dim": 8192,
+        "layer": 68,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          52.3165,
+          38.6889,
+          34.4074,
+          23.6603,
+          17.6657
+        ],
+        "variance_explained_v1": 0.248058
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.98375,
+        "dim": 8192,
+        "layer": 68,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          47.3236,
+          29.6325,
+          22.0027,
+          18.5227,
+          14.5174
+        ],
+        "variance_explained_v1": 0.315311
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.961709,
+        "dim": 8192,
+        "layer": 68,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          29.5775,
+          24.6306,
+          22.1304,
+          14.8489,
+          9.6857
+        ],
+        "variance_explained_v1": 0.222533
+      }
+    },
+    "72": {
+      "combined": {
+        "cos_v1_diffmeans": 0.910429,
+        "dim": 8192,
+        "layer": 72,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          54.7206,
+          40.6162,
+          36.0741,
+          25.0322,
+          18.3508
+        ],
+        "variance_explained_v1": 0.247047
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.982147,
+        "dim": 8192,
+        "layer": 72,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          49.3898,
+          31.1928,
+          22.922,
+          19.6915,
+          15.0987
+        ],
+        "variance_explained_v1": 0.313166
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.962706,
+        "dim": 8192,
+        "layer": 72,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          30.8421,
+          25.7751,
+          23.7292,
+          15.4712,
+          10.2045
+        ],
+        "variance_explained_v1": 0.219625
+      }
+    },
+    "76": {
+      "combined": {
+        "cos_v1_diffmeans": 0.918352,
+        "dim": 8192,
+        "layer": 76,
+        "n_pairs": 912,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          74.7123,
+          52.456,
+          42.1665,
+          32.2907,
+          22.4638
+        ],
+        "variance_explained_v1": 0.2822
+      },
+      "explicit": {
+        "cos_v1_diffmeans": 0.976068,
+        "dim": 8192,
+        "layer": 76,
+        "n_pairs": 570,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          66.1722,
+          40.3592,
+          27.2128,
+          25.7538,
+          18.4915
+        ],
+        "variance_explained_v1": 0.342987
+      },
+      "woodlabs": {
+        "cos_v1_diffmeans": 0.922472,
+        "dim": 8192,
+        "layer": 76,
+        "n_pairs": 342,
+        "one_dimensional": true,
+        "one_dimensional_threshold": 0.28932292908349416,
+        "pooling": "completion_mean",
+        "random_pair_abs_p99": 0.028932,
+        "top_singular_values": [
+          39.5374,
+          33.9233,
+          30.8585,
+          18.9125,
+          13.8276
+        ],
+        "variance_explained_v1": 0.222887
+      }
+    }
+  },
+  "pooling": "completion_mean"
+}
