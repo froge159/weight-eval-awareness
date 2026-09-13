@@ -185,12 +185,27 @@ def build_model(args):
         from steering.directions import assign_blocks, load_direction_set
         from steering.surgery import EditSpec, load_edited_model
 
-        spec = EditSpec(
+        directions_dir = args.directions_dir
+        if directions_dir is not None:
+            directions_dir = Path(directions_dir)
+            if not directions_dir.is_absolute():
+                directions_dir = REPO / directions_dir
+            directions_dir = str(directions_dir)
+
+        spec_kwargs = dict(
             band=tuple(args.band), layer_convention="write_target",
+            pooling=args.pooling, direction_key=args.direction_key,
             use_merge_cache=not args.no_merge_cache,
             merge_cache_dir=args.merge_cache_dir,
         )
-        dset = load_direction_set()
+        if directions_dir is not None:
+            spec_kwargs["directions_dir"] = directions_dir
+        spec = EditSpec(**spec_kwargs)
+
+        load_kwargs = {"pooling": args.pooling, "key": args.direction_key}
+        if directions_dir is not None:
+            load_kwargs["directory"] = directions_dir
+        dset = load_direction_set(**load_kwargs)
         plan = assign_blocks(dset, spec.band, n_blocks=80,
                              convention=spec.layer_convention)
 
@@ -549,6 +564,14 @@ def main() -> int:
     p.add_argument("--limit", type=int, default=None,
                    help="sample N questions from the split (pilot runs)")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--question-fractions", type=float, nargs=3, default=[0.6, 0.2, 0.2],
+                   help="extract/ood_holdout/behavioral question split fractions; "
+                        "must match the config used to fit whatever direction "
+                        "you're editing with, or --split extract selects the "
+                        "wrong questions. completion_mean.yaml used 0.15 0.35 0.5")
+    p.add_argument("--template-fractions", type=float, nargs=3, default=[0.6, 0.2, 0.2],
+                   help="extract/ood_holdout/behavioral template-family split "
+                        "fractions; same caveat as --question-fractions")
     p.add_argument("--no-hint", action="store_true",
                    help="drop the situational awareness hint (diagnostic only)")
 
@@ -561,6 +584,17 @@ def main() -> int:
                         "(proposal 3.4 criterion 3)")
     p.add_argument("--control-seed", type=int, default=0)
     p.add_argument("--band", type=int, nargs=2, default=[36, 76])
+    p.add_argument("--pooling", default="last_prompt_token",
+                   help="which direction set to edit with, e.g. completion_mean; "
+                        "only affects --edited/--control")
+    p.add_argument("--directions-dir", default=None,
+                   help="override the directions dir, e.g. outputs/directions_cm "
+                        "(default: steering.directions.DEFAULT_DIRECTIONS_DIR, "
+                        "i.e. outputs/directions -- the original last_prompt_token "
+                        "set); only affects --edited/--control")
+    p.add_argument("--direction-key", default="r_hat",
+                   help="array in the npz: r_hat, r_hat_explicit, r_hat_woodlabs; "
+                        "only affects --edited/--control")
     p.add_argument("--tag", default=None, help="label for this model in the output")
 
     p.add_argument("--dtype", default="bfloat16")
@@ -611,7 +645,7 @@ def main() -> int:
         banner("STAGE 1  build prompts and select the behavioral split")
         items, splits, keep = behavioral_items(
             qpath, regimes, not args.no_hint, args.seed,
-            (0.6, 0.2, 0.2), (0.6, 0.2, 0.2), args.split,
+            tuple(args.template_fractions), tuple(args.question_fractions), args.split,
         )
         log.info("%d pairs in split %r", len(keep), args.split)
         if not keep:
