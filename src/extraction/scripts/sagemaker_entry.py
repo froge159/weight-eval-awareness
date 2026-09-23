@@ -43,6 +43,12 @@ RUNS = {
         "--regime", "explicit",
         "--tag", "organism_cm_explicit",
         "--out", str(CHECKPOINT_DIR / "phase3_cm_explicit_baseline"),
+        # g6e.12xlarge is 4x L40S 48GB each; leave real headroom per card for
+        # KV-cache growth during generation (see run_phase3.py's per-GPU
+        # max_memory fix) and shrink the batch so a retry after an earlier
+        # OOM isn't just as likely to OOM again.
+        "--gpu-mem", "38GiB",
+        "--batch-size", "2",
     ],
     "edited": [
         "--stage", "all", "--edited",

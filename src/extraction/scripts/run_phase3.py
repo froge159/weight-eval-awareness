@@ -274,9 +274,15 @@ def build_model(args):
         # the remainder to CPU, and to disk if CPU RAM also runs short.
         load_kwargs["offload_folder"] = args.offload_folder
         if args.gpu_mem:
-            # accelerate otherwise fills the card to 90% and leaves nothing for
-            # generation buffers.
-            load_kwargs["max_memory"] = {0: args.gpu_mem, "cpu": args.cpu_mem}
+            # accelerate otherwise fills each card to ~90% and leaves nothing
+            # for generation buffers (KV-cache growth during autoregressive
+            # decoding). Capping only device 0 is fine on a 2-card setup where
+            # device 1 gets whatever's left, but on N cards it left every card
+            # past device 0 fully uncapped -- accelerate could pack one right
+            # to its physical limit and OOM mid-generation on a >2-GPU box.
+            n_gpu = torch.cuda.device_count() if torch.cuda.is_available() else 1
+            load_kwargs["max_memory"] = {i: args.gpu_mem for i in range(n_gpu)}
+            load_kwargs["max_memory"]["cpu"] = args.cpu_mem
 
     if not args.no_adapter and args.merge:
         # Merging is REQUIRED before a Phase 2 weight edit: an attached
