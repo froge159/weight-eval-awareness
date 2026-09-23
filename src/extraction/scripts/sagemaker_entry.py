@@ -35,6 +35,18 @@ PINNED_DEPS = [
     "pyyaml>=6.0.3",
 ]
 
+SMOKE_ARGS = [
+    "--stage", "all",
+    "--split", "extract",
+    "--question-fractions", "0.15", "0.35", "0.5",
+    "--regime", "explicit",
+    "--tag", "smoke_check",
+    "--limit", "2",
+    "--out", str(CHECKPOINT_DIR / "smoke_check"),
+    "--gpu-mem", "38GiB",
+    "--batch-size", "2",
+]
+
 RUNS = {
     "baseline": [
         "--stage", "all",
@@ -76,6 +88,20 @@ def main() -> int:
     print(f"installing pinned deps: {PINNED_DEPS}")
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", *PINNED_DEPS],
                     check=True)
+
+    # A 2-question check first: if model loading or generation OOMs, we want
+    # to know within minutes, not after hours of a run that never had a
+    # chance. Uses the same --gpu-mem/--batch-size as the real run, so it
+    # exercises the exact device placement that failed last time.
+    print("running smoke check (2 questions) before committing to the full run")
+    smoke = subprocess.run(
+        [sys.executable, str(RUN_PHASE3), *SMOKE_ARGS],
+        cwd=str(EXTRACTION_DIR),
+    )
+    if smoke.returncode != 0:
+        print("smoke check failed -- not starting the full run", file=sys.stderr)
+        return smoke.returncode
+    print("smoke check passed")
 
     print(f"running run_phase3.py in mode={mode!r}")
     result = subprocess.run(
