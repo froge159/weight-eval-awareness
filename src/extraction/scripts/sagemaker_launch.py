@@ -43,6 +43,12 @@ def main() -> int:
     p.add_argument("--source-dir", default=".",
                     help="repo root to package and ship to the container "
                          "(default: current directory -- run this from the repo root)")
+    p.add_argument("--limit", type=int, default=None,
+                    help="sample only the first N questions (sorted by question_id) "
+                         "-- for a cheap, budget-bounded test before committing to "
+                         "the full split; passed through to run_phase3.py as-is, so "
+                         "the same value selects the same questions on both "
+                         "--run baseline and --run edited for a matched comparison")
     args = p.parse_args()
 
     hf_token = os.environ.get("HF_TOKEN")
@@ -68,7 +74,8 @@ def main() -> int:
         max_run=int(args.max_run_hours * 3600),
         checkpoint_s3_uri=f"s3://{bucket}/{prefix}/checkpoints",
         output_path=f"s3://{bucket}/{prefix}/output",
-        environment={"HF_TOKEN": hf_token, "RUN_MODE": args.run},
+        environment={"HF_TOKEN": hf_token, "RUN_MODE": args.run,
+                     "LIMIT": str(args.limit) if args.limit is not None else ""},
         disable_profiler=True,
         keep_alive_period_in_seconds=0,
     )

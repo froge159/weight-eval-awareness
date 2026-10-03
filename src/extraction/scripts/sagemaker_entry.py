@@ -103,9 +103,14 @@ def main() -> int:
         return smoke.returncode
     print("smoke check passed")
 
-    print(f"running run_phase3.py in mode={mode!r}")
+    run_args = list(RUNS[mode])
+    limit = os.environ.get("LIMIT", "")
+    if limit:
+        run_args += ["--limit", limit]
+
+    print(f"running run_phase3.py in mode={mode!r} args={run_args}")
     result = subprocess.run(
-        [sys.executable, str(RUN_PHASE3), *RUNS[mode]],
+        [sys.executable, str(RUN_PHASE3), *run_args],
         cwd=str(EXTRACTION_DIR),
     )
 
