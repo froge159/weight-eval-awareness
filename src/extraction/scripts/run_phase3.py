@@ -180,7 +180,12 @@ def build_model(args):
     if args.edited or args.control:
         # Phase 2 writes no checkpoint; the edit is regenerated from the
         # per-block directions committed under outputs/steering/.
-        sys.path.insert(0, str(REPO.parent / "src"))
+        # REPO is repo_root/src/extraction, so REPO.parent (repo_root/src)
+        # is where the `steering` package actually lives as a sibling of
+        # `extraction` -- the old `REPO.parent / "src"` pointed at the
+        # nonexistent repo_root/src/src and only ever failed with
+        # ModuleNotFoundError once this --edited/--control branch actually ran.
+        sys.path.insert(0, str(REPO.parent))
         sys.path.insert(0, str(REPO / "scripts"))
         from steering.directions import assign_blocks, load_direction_set
         from steering.surgery import EditSpec, load_edited_model
