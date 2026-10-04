@@ -35,18 +35,6 @@ PINNED_DEPS = [
     "pyyaml>=6.0.3",
 ]
 
-SMOKE_ARGS = [
-    "--stage", "all",
-    "--split", "extract",
-    "--question-fractions", "0.15", "0.35", "0.5",
-    "--regime", "explicit",
-    "--tag", "smoke_check",
-    "--limit", "2",
-    "--out", str(CHECKPOINT_DIR / "smoke_check"),
-    "--gpu-mem", "38GiB",
-    "--batch-size", "2",
-]
-
 RUNS = {
     "baseline": [
         "--stage", "all",
@@ -78,8 +66,32 @@ RUNS = {
         # fixed the same way with this flag.
         "--gpu-mem", "38GiB",
         "--batch-size", "2",
+        # The --edited path always merges the adapter before editing (required,
+        # unlike baseline). ensure_merged()'s default cache lives under the
+        # packaged source dir (/opt/ml/code/...), which is NOT synced to S3 --
+        # every resubmitted job would silently redo the ~10-15 min CPU merge
+        # and ~100GB write from scratch. Point it at the checkpoint dir instead
+        # so a retry reuses the merge instead of repeating it.
+        "--merge-cache-dir", str(CHECKPOINT_DIR / "merge_cache"),
     ],
 }
+
+
+def smoke_args_for(mode: str) -> list[str]:
+    """The real mode's own args, overridden to a tiny 2-question check.
+
+    Argparse keeps the last value for a repeated non-list flag, so appending
+    --tag/--out/--limit after the mode's full argument list overrides just
+    those three and leaves everything else (--edited, --band, --pooling,
+    --gpu-mem, --merge-cache-dir, ...) intact -- the smoke check then
+    exercises the exact code path the real run will take, not a separate,
+    drifted-apart copy of it.
+    """
+    return list(RUNS[mode]) + [
+        "--tag", "smoke_check",
+        "--limit", "2",
+        "--out", str(CHECKPOINT_DIR / f"smoke_check_{mode}"),
+    ]
 
 
 def main() -> int:
@@ -95,13 +107,13 @@ def main() -> int:
     subprocess.run([sys.executable, "-m", "pip", "install", "-q", *PINNED_DEPS],
                     check=True)
 
-    # A 2-question check first: if model loading or generation OOMs, we want
-    # to know within minutes, not after hours of a run that never had a
-    # chance. Uses the same --gpu-mem/--batch-size as the real run, so it
-    # exercises the exact device placement that failed last time.
-    print("running smoke check (2 questions) before committing to the full run")
+    # A 2-question check first, using mode's own real args (including
+    # --edited when relevant): if model loading, the merge, or generation
+    # fails, we want to know within minutes, not after hours of a run that
+    # never had a chance.
+    print(f"running smoke check (2 questions, mode={mode!r}) before the full run")
     smoke = subprocess.run(
-        [sys.executable, str(RUN_PHASE3), *SMOKE_ARGS],
+        [sys.executable, str(RUN_PHASE3), *smoke_args_for(mode)],
         cwd=str(EXTRACTION_DIR),
     )
     if smoke.returncode != 0:
