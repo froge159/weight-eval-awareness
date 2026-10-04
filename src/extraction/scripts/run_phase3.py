@@ -243,13 +243,16 @@ def build_model(args):
                     log.info("model is on %s; dispatching across %d GPU(s)",
                              first, n_gpu)
                     from accelerate import dispatch_model, infer_auto_device_map
-                    from accelerate.utils import get_balanced_memory
 
                     no_split = getattr(model, "_no_split_modules", None) or []
-                    max_mem = get_balanced_memory(
-                        model, dtype=dtype, no_split_module_classes=no_split,
-                        low_zero=False,
-                    )
+                    # get_balanced_memory() packs each card close to its physical
+                    # limit with no reserved headroom for generation buffers --
+                    # the same OOM risk as the baseline path's loader, just
+                    # reached through a different accelerate call. Use the same
+                    # explicit per-GPU cap (args.gpu_mem) instead, so both paths
+                    # leave real room for KV-cache growth during generation.
+                    max_mem = ({i: args.gpu_mem for i in range(n_gpu)}
+                               if args.gpu_mem else None)
                     device_map = infer_auto_device_map(
                         model, max_memory=max_mem, dtype=dtype,
                         no_split_module_classes=no_split,

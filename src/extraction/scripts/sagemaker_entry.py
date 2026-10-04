@@ -72,6 +72,12 @@ RUNS = {
         "--direction-key", "r_hat_explicit",
         "--tag", "edited_cm_explicit",
         "--out", str(CHECKPOINT_DIR / "phase3_cm_explicit_edited"),
+        # Same reasoning as baseline's: real per-GPU headroom on a 48GB card,
+        # smaller batches -- this path's own GPU dispatch had the same
+        # no-headroom bug as the baseline loader (see run_phase3.py), now
+        # fixed the same way with this flag.
+        "--gpu-mem", "38GiB",
+        "--batch-size", "2",
     ],
 }
 
